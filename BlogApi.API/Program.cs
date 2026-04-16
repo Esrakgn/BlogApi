@@ -49,13 +49,13 @@ builder.Services.AddSwaggerGen(options =>
 
 
 
-
 // Burada appsettings.json içindeki DefaultConnection okunur
 // UseSqlServer ile EF Core'a MSSQL kullanacağını söylüyoruz
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<JwtTokenGenerator>();
+builder.Services.AddScoped<IPostService, PostService>();
 
 // JWT authentication ayarları
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

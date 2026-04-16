@@ -14,6 +14,7 @@ namespace BlogApi.Infrastructure.Data
         }
 
         public DbSet<AppUser> Users { get; set; }
+        public DbSet<Post> Posts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
