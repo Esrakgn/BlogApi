@@ -3,6 +3,7 @@ using BlogApi.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using BlogApi.Application.Enums;
 
 namespace BlogApi.API.Controllers
 {
@@ -19,13 +20,14 @@ namespace BlogApi.API.Controllers
 
 
         [HttpGet]
-            public async Task<IActionResult> GetAll()
-            {
-                var posts = await _postService.GetAllAsync();
-                return Ok(posts);
-            }
+        public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] Guid? categoryId)
+        {
+            var posts = await _postService.GetAllAsync(search, categoryId);
+            return Ok(posts);
+        }
 
-            [HttpGet("{id:guid}")]
+
+        [HttpGet("{id:guid}")]
             public async Task<IActionResult> GetById(Guid id)
             {
                 var post = await _postService.GetByIdAsync(id);
@@ -68,16 +70,18 @@ namespace BlogApi.API.Controllers
 
                 var result = await _postService.UpdateAsync(id, userId, dto);
 
-                if (!result)
-                {
-                    return Forbid();
-                }
+            return result switch
+            {
+                PostActionResult.NotFound => NotFound(new { message = "Post not found" }),
+                PostActionResult.Forbidden => Forbid(),
+                PostActionResult.Success => NoContent(),
+                _ => BadRequest()
+            };
 
-                return NoContent();
 
-            }
+        }
 
-            [Authorize]
+        [Authorize]
             [HttpDelete("{id:guid}")]
             public async Task<IActionResult> Delete(Guid id)
             {
@@ -90,13 +94,15 @@ namespace BlogApi.API.Controllers
 
                 var result = await _postService.DeleteAsync(id, userId);
 
-                if (!result)
-                {
-                    return Forbid();
-                }
+            return result switch
+            {
+                PostActionResult.NotFound => NotFound(new { message = "Post not found" }),
+                PostActionResult.Forbidden => Forbid(),
+                PostActionResult.Success => NoContent(),
+                _ => BadRequest()
+            };
 
-                return NoContent();
-            }
+        }
 
     }
 }

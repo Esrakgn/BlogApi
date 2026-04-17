@@ -8,18 +8,20 @@ namespace BlogApi.Domain.Entities
     { 
         public Guid Id { get; set; }
         public string Title { get; set; } = string.Empty;
-        //blog yazısının başkığı postta kullanıcı bunu gircek
         public string Content { get; set; } = string.Empty;
-        //asıl metin burada olacak
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         // postun oluşturulma tarihi/ default olarak şu anki zamanı atıyoruz
         public Guid AuthorId { get; set; }
         // postun yazarı olacak kullanıcı id'si/ foreign key gibi çalışır
-
         public AppUser Author { get; set; } = null!;
-        // postun yazarı olacak kullanıcı bilgisi/ navigation property gibi çalışır
-
         public DateTime? UpdatedAt { get; set; }
         // postun güncellenme tarihi/ nullable çünkü her post güncellenmeyebilir
+
+        public Guid CategoryId { get; set; }
+        
+        // postun ait olduğu kategori id'si ve kategori bilgisi 
+        public Category Category { get; set; } = null!;
+        
     }
 }
+//many-to-one ilişkisi var, bir postun bir yazarı var, bir yazarın birçok postu olabilir

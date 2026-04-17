@@ -16,6 +16,8 @@ namespace BlogApi.Infrastructure.Data
         public DbSet<AppUser> Users { get; set; }
         public DbSet<Post> Posts { get; set; }
 
+        public DbSet<Category> Categories { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -32,6 +34,12 @@ namespace BlogApi.Infrastructure.Data
                 .HasIndex(u => u.Email)
                 .IsUnique();
 
+
+            modelBuilder.Entity<Post>()
+              .HasOne(p => p.Category)
+              .WithMany(c => c.Posts)
+              .HasForeignKey(p => p.CategoryId)
+              .OnDelete(DeleteBehavior.Restrict);
 
         }
 

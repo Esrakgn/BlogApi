@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using BlogApi.Domain.Enums;
 
 namespace BlogApi.Domain.Entities
 {
@@ -14,7 +15,7 @@ namespace BlogApi.Domain.Entities
 
         public string PasswordHash { get; set; } = string.Empty;
 
-        public string Role { get; set; } = "User";
+        public UserRole Role { get; set; } = UserRole.User;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

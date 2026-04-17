@@ -3,39 +3,58 @@ using BlogApi.Application.Interfaces;
 using BlogApi.Domain.Entities;
 using BlogApi.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using BlogApi.Application.Enums;
 
 namespace BlogApi.Infrastructure.Services
 {
     public class PostService : IPostService
     {
         private readonly AppDbContext _context;
-        
+
         public PostService(AppDbContext context)
         {
             _context = context;
         }
 
-        public async Task<List<PostDto>> GetAllAsync()
+        public async Task<List<PostDto>> GetAllAsync(string? search, Guid? categoryId)
         {
-            var posts = await _context.Posts
+            var query = _context.Posts
+                .Include(p => p.Category)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(p =>
+                    EF.Functions.Like(p.Title, $"%{search}%") ||
+                    EF.Functions.Like(p.Content, $"%{search}%"));
+            }
+
+            if (categoryId.HasValue)
+            {
+                query = query.Where(p => p.CategoryId == categoryId.Value);
+            }
+
+            var posts = await query
                 .Select(p => new PostDto
                 {
                     Id = p.Id,
                     Title = p.Title,
                     Content = p.Content,
                     AuthorId = p.AuthorId,
+                    CategoryId = p.CategoryId,
+                    CategoryName = p.Category.Name,
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt
                 })
                 .ToListAsync();
 
             return posts;
-            // tüm postları dto olarak liste halinde döndürür
         }
 
         public async Task<PostDto?> GetByIdAsync(Guid id)
         {
             var post = await _context.Posts
+                .Include(p => p.Category)
                 .Where(p => p.Id == id)
                 .Select(p => new PostDto
                 {
@@ -43,6 +62,8 @@ namespace BlogApi.Infrastructure.Services
                     Title = p.Title,
                     Content = p.Content,
                     AuthorId = p.AuthorId,
+                    CategoryId = p.CategoryId,
+                    CategoryName = p.Category.Name,
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt
                 })
@@ -64,22 +85,32 @@ namespace BlogApi.Infrastructure.Services
                     throw new Exception("User not found.");
                 }
 
+                var categoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
+                // gönderilen kategori database'de var mı kontrol ediyoruz
+
+                if (!categoryExists)
+                {
+                    throw new Exception("Category not found.");
+                }
+
                 var post = new Post
                 {
                     Id = Guid.NewGuid(),
                     Title = dto.Title,
                     Content = dto.Content,
                     AuthorId = userId,
+                    CategoryId = dto.CategoryId,
                     CreatedAt = DateTime.UtcNow
                 };
                 // yeni post oluşturuyoruz
                 // authorId token'dan gelen kullanıcı id'si olacak
 
                 _context.Posts.Add(post);
-                // postu EF Core üzerinden ekliyoruz
 
                 await _context.SaveChangesAsync();
-                
+
+                var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == post.CategoryId);
+                // kayıt edilen postun kategori bilgisini alıyoruz
 
                 return new PostDto
                 {
@@ -87,6 +118,8 @@ namespace BlogApi.Infrastructure.Services
                     Title = post.Title,
                     Content = post.Content,
                     AuthorId = post.AuthorId,
+                    CategoryId = post.CategoryId,
+                    CategoryName = category?.Name ?? string.Empty,
                     CreatedAt = post.CreatedAt,
                     UpdatedAt = post.UpdatedAt
                 };
@@ -96,60 +129,60 @@ namespace BlogApi.Infrastructure.Services
             {
                 throw;
             }
-
         }
 
-        public async Task<bool> UpdateAsync(Guid id, Guid userId, UpdatePostDto dto)
+        public async Task<PostActionResult> UpdateAsync(Guid id, Guid userId, UpdatePostDto dto)
         {
             var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == id);
             // güncellenecek postu id'ye göre buluyoruz
 
             if (post == null)
             {
-                return false;
-                // post yoksa güncelleme yapılamaz
+                return PostActionResult.NotFound;
             }
 
             if (post.AuthorId != userId)
             {
-                return false;
+                return PostActionResult.Forbidden;
                 // giriş yapan kullanıcı postun sahibi değilse güncelleme yapamaz
+            }
+
+            var categoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
+            // gönderilen kategori database'de var mı kontrol ediyoruz
+
+            if (!categoryExists)
+            {
+                return PostActionResult.NotFound;
             }
 
             post.Title = dto.Title;
             post.Content = dto.Content;
+            post.CategoryId = dto.CategoryId;
             post.UpdatedAt = DateTime.UtcNow;
-           
+
             await _context.SaveChangesAsync();
-            
-            return true;
-            
+
+            return PostActionResult.Success;
         }
 
-        public async Task<bool> DeleteAsync(Guid id, Guid userId)
+        public async Task<PostActionResult> DeleteAsync(Guid id, Guid userId)
         {
             var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == id);
-            // silinecek postu id'ye göre buluyoruz
 
             if (post == null)
             {
-                return false;
-                // post yoksa silme işlemi yapılamaz
+                return PostActionResult.NotFound;
             }
 
             if (post.AuthorId != userId)
             {
-                return false;
+                return PostActionResult.Forbidden;
                 // giriş yapan kullanıcı postun sahibi değilse silme işlemi yapamaz
             }
 
             _context.Posts.Remove(post);
-            // postu silinmek üzere işaretliyoruz
-
             await _context.SaveChangesAsync();
-
-            return true;
-            
+            return PostActionResult.Success;
         }
     }
 }

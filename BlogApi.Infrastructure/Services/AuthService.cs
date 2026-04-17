@@ -1,6 +1,7 @@
 ﻿using BlogApi.Application.DTOs.Auth;
 using BlogApi.Application.Interfaces;
 using BlogApi.Domain.Entities;
+using BlogApi.Domain.Enums;
 using BlogApi.Infrastructure.Data;
 using BlogApi.Infrastructure.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -41,7 +42,7 @@ namespace BlogApi.Infrastructure.Services
                 FullName = dto.FullName,
                 Email = dto.Email,
                 PasswordHash = passwordHash,
-                Role = "User"
+                Role = UserRole.User
             };
 
             // Database'e kaydediyoruz
@@ -54,9 +55,10 @@ namespace BlogApi.Infrastructure.Services
                 UserId = user.Id,
                 FullName = user.FullName,
                 Email = user.Email,
-                Role = user.Role,
+                Role = user.Role.ToString(),
                 Message = "User registered successfully"
             };
+
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
@@ -87,8 +89,9 @@ namespace BlogApi.Infrastructure.Services
                 UserId = user.Id,
                 FullName = user.FullName,
                 Email = user.Email,
-                Role = user.Role
+                Role = user.Role.ToString()
             };
+
         }
     }
 }
