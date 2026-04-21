@@ -1,9 +1,10 @@
 ﻿using BlogApi.Application.DTOs.Posts;
+using BlogApi.Application.Enums;
 using BlogApi.Application.Interfaces;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using BlogApi.Application.Enums;
 
 namespace BlogApi.API.Controllers
 {
@@ -12,12 +13,15 @@ namespace BlogApi.API.Controllers
     public class PostsController : ControllerBase
     {
         private readonly IPostService _postService;
+        private readonly IValidator<CreatePostDto> _createPostValidator;
+        private readonly IValidator<UpdatePostDto> _updatePostValidator;
 
-        public PostsController(IPostService postService)
+        public PostsController( IPostService postService,IValidator<CreatePostDto> createPostValidator, IValidator<UpdatePostDto> updatePostValidator)
         {
             _postService = postService;
+            _createPostValidator = createPostValidator;
+            _updatePostValidator = updatePostValidator;
         }
-
 
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] Guid? categoryId)
@@ -26,73 +30,68 @@ namespace BlogApi.API.Controllers
             return Ok(posts);
         }
 
-
         [HttpGet("{id:guid}")]
-            public async Task<IActionResult> GetById(Guid id)
+        public async Task<IActionResult> GetById(Guid id)
+        {
+            var post = await _postService.GetByIdAsync(id);
+
+            if (post == null)
             {
-                var post = await _postService.GetByIdAsync(id);
-
-                if (post == null)
-                {
-                    return NotFound(new { message = "Post not found" });
-                }
-
-                return Ok(post);
+                return NotFound(new { message = "Post not found" });
             }
 
-            [Authorize]
-            [HttpPost]
-            public async Task<IActionResult> Create(CreatePostDto dto)
-            {
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-                if (!Guid.TryParse(userIdClaim, out var userId))
-                {
-                    return Unauthorized(new { message = "Invalid user token" });
-                }
-
-                var createdPost = await _postService.CreateAsync(userId, dto);
-                return CreatedAtAction(nameof(GetById), new { id = createdPost.Id }, createdPost);
-            }
-
-
-            [Authorize]
-            [HttpPut("{id:guid}")]
-            public async Task<IActionResult> Update(Guid id, UpdatePostDto dto)
-            {
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-                if (!Guid.TryParse(userIdClaim, out var userId))
-                {
-                    return Unauthorized(new {message = "Invalid user token" });
-
-                }
-
-                var result = await _postService.UpdateAsync(id, userId, dto);
-
-            return result switch
-            {
-                PostActionResult.NotFound => NotFound(new { message = "Post not found" }),
-                PostActionResult.Forbidden => Forbid(),
-                PostActionResult.Success => NoContent(),
-                _ => BadRequest()
-            };
-
-
+            return Ok(post);
         }
 
         [Authorize]
-            [HttpDelete("{id:guid}")]
-            public async Task<IActionResult> Delete(Guid id)
+        [HttpPost]
+        public async Task<IActionResult> Create(CreatePostDto dto)
+        {
+            var validationResult = await _createPostValidator.ValidateAsync(dto);
+
+            if (!validationResult.IsValid)
             {
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-                if(!Guid.TryParse(userIdClaim, out var userId))
+                return BadRequest(validationResult.Errors.Select(x => new
                 {
-                    return Unauthorized(new { message = "Invalid user token" });
-                }
+                    field = x.PropertyName,
+                    error = x.ErrorMessage
+                }));
+            }
 
-                var result = await _postService.DeleteAsync(id, userId);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { message = "Invalid user token" });
+            }
+
+            var createdPost = await _postService.CreateAsync(userId, dto);
+            return CreatedAtAction(nameof(GetById), new { id = createdPost.Id }, createdPost);
+        }
+
+        [Authorize]
+        [HttpPut("{id:guid}")]
+        public async Task<IActionResult> Update(Guid id, UpdatePostDto dto)
+        {
+            var validationResult = await _updatePostValidator.ValidateAsync(dto);
+
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(validationResult.Errors.Select(x => new
+                {
+                    field = x.PropertyName,
+                    error = x.ErrorMessage
+                }));
+            }
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { message = "Invalid user token" });
+            }
+
+            var result = await _postService.UpdateAsync(id, userId, dto);
 
             return result switch
             {
@@ -101,9 +100,28 @@ namespace BlogApi.API.Controllers
                 PostActionResult.Success => NoContent(),
                 _ => BadRequest()
             };
-
         }
 
+        [Authorize]
+        [HttpDelete("{id:guid}")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { message = "Invalid user token" });
+            }
+
+            var result = await _postService.DeleteAsync(id, userId);
+
+            return result switch
+            {
+                PostActionResult.NotFound => NotFound(new { message = "Post not found" }),
+                PostActionResult.Forbidden => Forbid(),
+                PostActionResult.Success => NoContent(),
+                _ => BadRequest()
+            };
+        }
     }
 }
-

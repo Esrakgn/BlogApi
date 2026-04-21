@@ -3,6 +3,7 @@ using BlogApi.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using FluentValidation;
 
 namespace BlogApi.API.Controllers
 {
@@ -11,16 +12,33 @@ namespace BlogApi.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IValidator<RegisterDto> _registerValidator;
+        private readonly IValidator<LoginDto> _loginValidator;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, IValidator<RegisterDto> registerValidator, IValidator<LoginDto> loginValidator)
         {
             _authService = authService;
+            _registerValidator = registerValidator;
+            _loginValidator = loginValidator;
         }
 
         // REGISTER
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto dto)
         {
+            var validationResult = await _registerValidator.ValidateAsync(dto);
+            // register dto doğrulamasını çalıştırıyoruz
+
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(validationResult.Errors.Select(x => new
+                {
+                    field = x.PropertyName,
+                    error = x.ErrorMessage
+                }));
+                // validation hataları varsa service'e gitmeden 400 dönüyoruz
+            }
+
             try
             {
                 var result = await _authService.RegisterAsync(dto);
@@ -39,6 +57,19 @@ namespace BlogApi.API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto dto)
         {
+            var validationResult = await _loginValidator.ValidateAsync(dto);
+            // login dto doğrulamasını çalıştırıyoruz
+
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(validationResult.Errors.Select(x => new
+                {
+                    field = x.PropertyName,
+                    error = x.ErrorMessage
+                }));
+                // validation hataları varsa service'e gitmeden 400 dönüyoruz
+            }
+
             try
             {
                 var result = await _authService.LoginAsync(dto);
@@ -52,7 +83,6 @@ namespace BlogApi.API.Controllers
                 return Unauthorized(new { message = ex.Message });
             }
         }
-
 
         [Authorize]
         [HttpGet("profile")]
@@ -70,6 +100,5 @@ namespace BlogApi.API.Controllers
                 role
             });
         }
-
     }
 }

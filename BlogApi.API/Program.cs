@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using BlogApi.Application.Features.Posts;
+using FluentValidation;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -57,6 +59,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<JwtTokenGenerator>();
 builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreatePostDtoValidator>();
+
 
 
 // JWT authentication ayarları
