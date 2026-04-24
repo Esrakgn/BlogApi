@@ -1,10 +1,13 @@
-﻿using BlogApi.Application.DTOs.Posts;
+﻿using BlogApi.Application.DTOs.Common;
+using BlogApi.Application.DTOs.Posts;
 using BlogApi.Application.Enums;
+using BlogApi.Application.Features.Common;
 using BlogApi.Application.Interfaces;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+
 
 namespace BlogApi.API.Controllers
 {
@@ -15,20 +18,42 @@ namespace BlogApi.API.Controllers
         private readonly IPostService _postService;
         private readonly IValidator<CreatePostDto> _createPostValidator;
         private readonly IValidator<UpdatePostDto> _updatePostValidator;
+        private readonly IValidator<PaginationParams> _paginationParamsValidator;
 
-        public PostsController( IPostService postService,IValidator<CreatePostDto> createPostValidator, IValidator<UpdatePostDto> updatePostValidator)
+
+        public PostsController( IPostService postService,IValidator<CreatePostDto> createPostValidator, IValidator<UpdatePostDto> updatePostValidator,
+            IValidator<PaginationParams> paginationParamsValidator
+)
         {
             _postService = postService;
             _createPostValidator = createPostValidator;
             _updatePostValidator = updatePostValidator;
+            _paginationParamsValidator = paginationParamsValidator;
+
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] Guid? categoryId)
+        public async Task<IActionResult> GetAll([FromQuery] string? search,
+         [FromQuery] Guid? categoryId,
+         [FromQuery] PaginationParams paginationParams)
+
         {
-            var posts = await _postService.GetAllAsync(search, categoryId);
+            var validationResult = await _paginationParamsValidator.ValidateAsync(paginationParams);
+
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(validationResult.Errors.Select(x => new
+                {
+                    field = x.PropertyName,
+                    error = x.ErrorMessage
+                }));
+            }
+
+            var posts = await _postService.GetAllAsync(search, categoryId, paginationParams);
             return Ok(posts);
         }
+
+
 
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)

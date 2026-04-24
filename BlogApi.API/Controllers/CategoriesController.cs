@@ -3,6 +3,8 @@ using BlogApi.Application.Interfaces;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using BlogApi.Application.Enums;
+
 
 namespace BlogApi.API.Controllers
 {
@@ -43,6 +45,7 @@ namespace BlogApi.API.Controllers
 
             return Ok(category);
         }
+
 
         [Authorize(Roles = "Admin")]
         [HttpPost]
@@ -87,10 +90,14 @@ namespace BlogApi.API.Controllers
 
             var result = await _categoryService.UpdateAsync(id, dto);
 
-            if (!result)
+            return result switch
             {
-                return BadRequest(new { message = "Category update failed" });
-            }
+                CategoryActionResult.NotFound => NotFound(new { message = "Category not found" }),
+                CategoryActionResult.Conflict => Conflict(new { message = "Category name already exists" }),
+                CategoryActionResult.Success => NoContent(),
+                _ => BadRequest()
+            };
+
 
             return NoContent();
         }
@@ -101,10 +108,13 @@ namespace BlogApi.API.Controllers
         {
             var result = await _categoryService.DeleteAsync(id);
 
-            if (!result)
+            return result switch
             {
-                return BadRequest(new { message = "Category delete failed" });
-            }
+                CategoryActionResult.NotFound => NotFound(new { message = "Category not found" }),
+                CategoryActionResult.Conflict => Conflict(new { message = "Category cannot be deleted because it is used by posts" }),
+                CategoryActionResult.Success => NoContent(),
+                _ => BadRequest()
+            };
 
             return NoContent();
         }

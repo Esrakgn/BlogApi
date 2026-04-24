@@ -3,6 +3,8 @@ using BlogApi.Application.Interfaces;
 using BlogApi.Domain.Entities;
 using BlogApi.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using BlogApi.Application.Enums;
+
 
 namespace BlogApi.Infrastructure.Services
 {
@@ -70,15 +72,15 @@ namespace BlogApi.Infrastructure.Services
             // oluşturulan kategoriyi dto olarak döndürüyoruz
         }
 
-        public async Task<bool> UpdateAsync(Guid id, UpdateCategoryDto dto)
+        public async Task<CategoryActionResult> UpdateAsync(Guid id, UpdateCategoryDto dto)
         {
             var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
             // güncellenecek kategoriyi buluyoruz
 
             if (category == null)
             {
-                return false;
-                // kategori yoksa işlem yapılamaz
+                return CategoryActionResult.NotFound;
+                // kategori yoksa notfound döner
             }
 
             var categoryExists = await _context.Categories.AnyAsync(c => c.Name == dto.Name && c.Id != id);
@@ -86,28 +88,41 @@ namespace BlogApi.Infrastructure.Services
 
             if (categoryExists)
             {
-                return false;
-                // aynı isimde başka kategori varsa güncelleme yapmıyoruz
+                return CategoryActionResult.Conflict;
+                // aynı isimde başka kategori varsa conflict döner
             }
 
             category.Name = dto.Name;
             await _context.SaveChangesAsync();
-            return true;
+
+            return CategoryActionResult.Success;
+            // işlem başarılıysa success döner
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+
+        public async Task<CategoryActionResult> DeleteAsync(Guid id)
         {
             var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
 
             if (category == null)
             {
-                return false;
+                return CategoryActionResult.NotFound;
+                // kategori yoksa notfound döner
             }
+            try
+            {
+                _context.Categories.Remove(category);
+                await _context.SaveChangesAsync();
 
-            _context.Categories.Remove(category);
-
-            await _context.SaveChangesAsync();
-            return true;
+                return CategoryActionResult.Success;
+                // işlem başarılıysa success döner
+            }
+            catch
+            {
+                return CategoryActionResult.Conflict;
+                // kategoriye bağlı post varsa veya başka çakışma varsa conflict döner
+            }
         }
+
     }
 }

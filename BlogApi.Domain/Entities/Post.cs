@@ -21,7 +21,10 @@ namespace BlogApi.Domain.Entities
         
         // postun ait olduğu kategori id'si ve kategori bilgisi 
         public Category Category { get; set; } = null!;
-        
+
+        public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+        // bu posta ait yorumları tutar / bir postun birden fazla yorumu olabilir
+
     }
 }
 //many-to-one ilişkisi var, bir postun bir yazarı var, bir yazarın birçok postu olabilir

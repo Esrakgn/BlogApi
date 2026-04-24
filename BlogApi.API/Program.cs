@@ -60,7 +60,7 @@ builder.Services.AddScoped<JwtTokenGenerator>();
 builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreatePostDtoValidator>();
-
+builder.Services.AddScoped<ICommentService, CommentService>();
 
 
 // JWT authentication ayarları

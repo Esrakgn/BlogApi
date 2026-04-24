@@ -23,5 +23,8 @@ namespace BlogApi.Domain.Entities
         // Kullanıcının yazdığı postları tutacak koleksiyon/ navigation property gibi çalışır
         //bir kullanıcı birden fazla post yazabilir, bu yüzden koleksiyon olarak tanımlıyoruz
 
+        public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+        // kullanıcının yazdığı yorumları tutar / bir kullanıcı birden fazla yorum yazabilir
+
     }
 }

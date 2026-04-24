@@ -3,6 +3,8 @@ using BlogApi.Application.Interfaces;
 using BlogApi.Domain.Entities;
 using BlogApi.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using BlogApi.Application.DTOs.Common;
+
 using BlogApi.Application.Enums;
 
 namespace BlogApi.Infrastructure.Services
@@ -16,7 +18,7 @@ namespace BlogApi.Infrastructure.Services
             _context = context;
         }
 
-        public async Task<List<PostDto>> GetAllAsync(string? search, Guid? categoryId)
+        public async Task<PagedResult<PostDto>> GetAllAsync(string? search, Guid? categoryId, PaginationParams paginationParams)
         {
             var query = _context.Posts
                 .Include(p => p.Category)
@@ -34,7 +36,13 @@ namespace BlogApi.Infrastructure.Services
                 query = query.Where(p => p.CategoryId == categoryId.Value);
             }
 
-            var posts = await query
+            var totalCount = await query.CountAsync();
+            // filtrelerden sonra toplam kaç kayıt kaldığını hesaplıyoruz
+
+            var items = await query
+                .OrderByDescending(p => p.CreatedAt)
+                .Skip((paginationParams.PageNumber - 1) * paginationParams.PageSize)
+                .Take(paginationParams.PageSize)
                 .Select(p => new PostDto
                 {
                     Id = p.Id,
@@ -48,8 +56,20 @@ namespace BlogApi.Infrastructure.Services
                 })
                 .ToListAsync();
 
-            return posts;
+            var totalPages = (int)Math.Ceiling((double)totalCount / paginationParams.PageSize);
+            // toplam sayfa sayısını hesaplıyoruz
+
+            return new PagedResult<PostDto>
+            {
+                Items = items,
+                PageNumber = paginationParams.PageNumber,
+                PageSize = paginationParams.PageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages
+            };
         }
+
+
 
         public async Task<PostDto?> GetByIdAsync(Guid id)
         {

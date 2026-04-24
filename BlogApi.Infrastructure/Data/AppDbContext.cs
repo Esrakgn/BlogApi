@@ -8,15 +8,16 @@ namespace BlogApi.Infrastructure.Data
 {
     public class AppDbContext : DbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options) 
-            : base(options) 
-        { 
+        public AppDbContext(DbContextOptions<AppDbContext> options)
+            : base(options)
+        {
         }
 
         public DbSet<AppUser> Users { get; set; }
         public DbSet<Post> Posts { get; set; }
 
         public DbSet<Category> Categories { get; set; }
+        public DbSet<Comment> Comments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -40,6 +41,22 @@ namespace BlogApi.Infrastructure.Data
               .WithMany(c => c.Posts)
               .HasForeignKey(p => p.CategoryId)
               .OnDelete(DeleteBehavior.Restrict);
+
+
+
+            modelBuilder.Entity<Comment>()
+              .HasOne(c => c.Post)
+              .WithMany(p => p.Comments)
+              .HasForeignKey(c => c.PostId)
+              .OnDelete(DeleteBehavior.Cascade);
+            //bir yorum bir posta ait , bir postun birden cok yorumu olabilir 
+
+            modelBuilder.Entity<Comment>()
+                .HasOne(c => c.User)
+                .WithMany(u => u.Comments)
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            //bir yorum bir kullanıcıya ait, birden cok yorum atabilir 
 
         }
 
