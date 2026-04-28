@@ -9,7 +9,8 @@ namespace BlogApi.Application.Interfaces
 {
     public interface IPostService
     {
-        Task<PagedResult<PostDto>> GetAllAsync(string? search, Guid? categoryId, PaginationParams paginationParams);
+        Task<PagedResult<PostDto>> GetAllAsync(string? search, Guid? categoryId, PostQueryParams queryParams);
+
 
         Task<PostDto?> GetByIdAsync(Guid id);
         Task<PostDto> CreateAsync(Guid userId, CreatePostDto dto);

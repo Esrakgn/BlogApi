@@ -18,7 +18,7 @@ namespace BlogApi.Infrastructure.Services
             _context = context;
         }
 
-        public async Task<PagedResult<PostDto>> GetAllAsync(string? search, Guid? categoryId, PaginationParams paginationParams)
+        public async Task<PagedResult<PostDto>> GetAllAsync(string? search, Guid? categoryId, PostQueryParams queryParams)
         {
             var query = _context.Posts
                 .Include(p => p.Category)
@@ -36,13 +36,17 @@ namespace BlogApi.Infrastructure.Services
                 query = query.Where(p => p.CategoryId == categoryId.Value);
             }
 
+            query = queryParams.SortBy?.ToLower() switch
+            {
+                "oldest" => query.OrderBy(p => p.CreatedAt),
+                _ => query.OrderByDescending(p => p.CreatedAt)
+            };
+
             var totalCount = await query.CountAsync();
-            // filtrelerden sonra toplam kaç kayıt kaldığını hesaplıyoruz
 
             var items = await query
-                .OrderByDescending(p => p.CreatedAt)
-                .Skip((paginationParams.PageNumber - 1) * paginationParams.PageSize)
-                .Take(paginationParams.PageSize)
+                .Skip((queryParams.PageNumber - 1) * queryParams.PageSize)
+                .Take(queryParams.PageSize)
                 .Select(p => new PostDto
                 {
                     Id = p.Id,
@@ -56,14 +60,13 @@ namespace BlogApi.Infrastructure.Services
                 })
                 .ToListAsync();
 
-            var totalPages = (int)Math.Ceiling((double)totalCount / paginationParams.PageSize);
-            // toplam sayfa sayısını hesaplıyoruz
+            var totalPages = (int)Math.Ceiling((double)totalCount / queryParams.PageSize);
 
             return new PagedResult<PostDto>
             {
                 Items = items,
-                PageNumber = paginationParams.PageNumber,
-                PageSize = paginationParams.PageSize,
+                PageNumber = queryParams.PageNumber,
+                PageSize = queryParams.PageSize,
                 TotalCount = totalCount,
                 TotalPages = totalPages
             };

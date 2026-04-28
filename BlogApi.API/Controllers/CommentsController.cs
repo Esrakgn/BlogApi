@@ -1,6 +1,7 @@
 ﻿using BlogApi.Application.DTOs.Comments;
 using BlogApi.Application.Enums;
 using BlogApi.Application.Interfaces;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -11,10 +12,17 @@ namespace BlogApi.API.Controllers
     public class CommentsController : ControllerBase
     {
         private readonly ICommentService _commentService;
+        private readonly IValidator<CreateCommentDto> _createCommentValidator;
+        private readonly IValidator<UpdateCommentDto> _updateCommentValidator;
 
-        public CommentsController(ICommentService commentService)
+        public CommentsController(
+            ICommentService commentService,
+            IValidator<CreateCommentDto> createCommentValidator,
+            IValidator<UpdateCommentDto> updateCommentValidator)
         {
             _commentService = commentService;
+            _createCommentValidator = createCommentValidator;
+            _updateCommentValidator = updateCommentValidator;
         }
 
         [HttpGet("api/posts/{postId:guid}/comments")]
@@ -28,6 +36,17 @@ namespace BlogApi.API.Controllers
         [HttpPost("api/posts/{postId:guid}/comments")]
         public async Task<IActionResult> Create(Guid postId, [FromBody] CreateCommentDto dto)
         {
+            var validationResult = await _createCommentValidator.ValidateAsync(dto);
+
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(validationResult.Errors.Select(x => new
+                {
+                    field = x.PropertyName,
+                    error = x.ErrorMessage
+                }));
+            }
+
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (!Guid.TryParse(userIdClaim, out var userId))
@@ -50,6 +69,17 @@ namespace BlogApi.API.Controllers
         [HttpPut("api/comments/{id:guid}")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCommentDto dto)
         {
+            var validationResult = await _updateCommentValidator.ValidateAsync(dto);
+
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(validationResult.Errors.Select(x => new
+                {
+                    field = x.PropertyName,
+                    error = x.ErrorMessage
+                }));
+            }
+
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (!Guid.TryParse(userIdClaim, out var userId))
@@ -59,7 +89,7 @@ namespace BlogApi.API.Controllers
 
             var result = await _commentService.UpdateAsync(id, userId, dto);
 
-            return result switch
+            return result switch // switch: result hangi değerse ona karşılık gelen satır çalışır.return kullanmaya gerek kalmıyor gibi
             {
                 CommentActionResult.NotFound => NotFound(new { message = "Comment not found" }),
                 CommentActionResult.Forbidden => Forbid(),

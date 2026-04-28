@@ -1,13 +1,11 @@
 ﻿using BlogApi.Application.DTOs.Common;
 using BlogApi.Application.DTOs.Posts;
 using BlogApi.Application.Enums;
-using BlogApi.Application.Features.Common;
 using BlogApi.Application.Interfaces;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-
 
 namespace BlogApi.API.Controllers
 {
@@ -18,27 +16,27 @@ namespace BlogApi.API.Controllers
         private readonly IPostService _postService;
         private readonly IValidator<CreatePostDto> _createPostValidator;
         private readonly IValidator<UpdatePostDto> _updatePostValidator;
-        private readonly IValidator<PaginationParams> _paginationParamsValidator;
+        private readonly IValidator<PostQueryParams> _postQueryParamsValidator;
 
-
-        public PostsController( IPostService postService,IValidator<CreatePostDto> createPostValidator, IValidator<UpdatePostDto> updatePostValidator,
-            IValidator<PaginationParams> paginationParamsValidator
-)
+        public PostsController(
+            IPostService postService,
+            IValidator<CreatePostDto> createPostValidator,
+            IValidator<UpdatePostDto> updatePostValidator,
+            IValidator<PostQueryParams> postQueryParamsValidator)
         {
             _postService = postService;
             _createPostValidator = createPostValidator;
             _updatePostValidator = updatePostValidator;
-            _paginationParamsValidator = paginationParamsValidator;
-
+            _postQueryParamsValidator = postQueryParamsValidator;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] string? search,
-         [FromQuery] Guid? categoryId,
-         [FromQuery] PaginationParams paginationParams)
-
+        public async Task<IActionResult> GetAll(
+            [FromQuery] string? search,
+            [FromQuery] Guid? categoryId,
+            [FromQuery] PostQueryParams queryParams)
         {
-            var validationResult = await _paginationParamsValidator.ValidateAsync(paginationParams);
+            var validationResult = await _postQueryParamsValidator.ValidateAsync(queryParams);
 
             if (!validationResult.IsValid)
             {
@@ -49,11 +47,9 @@ namespace BlogApi.API.Controllers
                 }));
             }
 
-            var posts = await _postService.GetAllAsync(search, categoryId, paginationParams);
+            var posts = await _postService.GetAllAsync(search, categoryId, queryParams);
             return Ok(posts);
         }
-
-
 
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)
