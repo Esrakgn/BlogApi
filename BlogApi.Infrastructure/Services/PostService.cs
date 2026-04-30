@@ -154,7 +154,7 @@ namespace BlogApi.Infrastructure.Services
             }
         }
 
-        public async Task<PostActionResult> UpdateAsync(Guid id, Guid userId, UpdatePostDto dto)
+        public async Task<PostActionResult> UpdateAsync(Guid id, Guid userId, bool isAdmin, UpdatePostDto dto)
         {
             var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == id);
             // güncellenecek postu id'ye göre buluyoruz
@@ -164,11 +164,12 @@ namespace BlogApi.Infrastructure.Services
                 return PostActionResult.NotFound;
             }
 
-            if (post.AuthorId != userId)
+            if (!isAdmin && post.AuthorId != userId)
             {
                 return PostActionResult.Forbidden;
-                // giriş yapan kullanıcı postun sahibi değilse güncelleme yapamaz
+                //giriş yapan kullanıcı admin değilse ve postun sahibi değilse güncellemeye izin yok
             }
+
 
             var categoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
             // gönderilen kategori database'de var mı kontrol ediyoruz
@@ -188,7 +189,7 @@ namespace BlogApi.Infrastructure.Services
             return PostActionResult.Success;
         }
 
-        public async Task<PostActionResult> DeleteAsync(Guid id, Guid userId)
+        public async Task<PostActionResult> DeleteAsync(Guid id, Guid userId, bool isAdmin)
         {
             var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == id);
 
@@ -197,11 +198,12 @@ namespace BlogApi.Infrastructure.Services
                 return PostActionResult.NotFound;
             }
 
-            if (post.AuthorId != userId)
+            if (!isAdmin && post.AuthorId != userId)
             {
                 return PostActionResult.Forbidden;
-                // giriş yapan kullanıcı postun sahibi değilse silme işlemi yapamaz
+                //giriş yapan kullanıcı admin değilse ve postun sahibi değilse silemez 
             }
+
 
             _context.Posts.Remove(post);
             await _context.SaveChangesAsync();

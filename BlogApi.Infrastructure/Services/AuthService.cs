@@ -1,4 +1,5 @@
 ﻿using BlogApi.Application.DTOs.Auth;
+using BlogApi.Application.Enums;
 using BlogApi.Application.Interfaces;
 using BlogApi.Domain.Entities;
 using BlogApi.Domain.Enums;
@@ -34,6 +35,9 @@ namespace BlogApi.Infrastructure.Services
 
             // Düz şifreyi hashliyoruz
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+            var role = dto.Role == UserRole.Author.ToString()
+                ? UserRole.Author
+                : UserRole.User;
 
             // Yeni kullanıcı oluşturuyoruz
             var user = new AppUser
@@ -42,8 +46,9 @@ namespace BlogApi.Infrastructure.Services
                 FullName = dto.FullName,
                 Email = dto.Email,
                 PasswordHash = passwordHash,
-                Role = UserRole.User
+                Role = role
             };
+
 
             // Database'e kaydediyoruz
             _context.Users.Add(user);

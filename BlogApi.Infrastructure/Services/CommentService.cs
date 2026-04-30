@@ -78,7 +78,7 @@ namespace BlogApi.Infrastructure.Services
             };
         }
 
-        public async Task<CommentActionResult> UpdateAsync(Guid commentId, Guid userId, UpdateCommentDto dto)
+        public async Task<CommentActionResult> UpdateAsync(Guid commentId, Guid userId, bool isAdmin, UpdateCommentDto dto)
         {
             var comment = await _context.Comments.FirstOrDefaultAsync(c => c.Id == commentId);
 
@@ -87,10 +87,11 @@ namespace BlogApi.Infrastructure.Services
                 return CommentActionResult.NotFound;
             }
 
-            if (comment.UserId != userId)
+            if (!isAdmin && comment.UserId != userId)
             {
                 return CommentActionResult.Forbidden;
             }
+
 
             comment.Content = dto.Content;
             comment.UpdatedAt = DateTime.UtcNow;
@@ -100,7 +101,7 @@ namespace BlogApi.Infrastructure.Services
             return CommentActionResult.Success;
         }
 
-        public async Task<CommentActionResult> DeleteAsync(Guid commentId, Guid userId)
+        public async Task<CommentActionResult> DeleteAsync(Guid commentId, Guid userId, bool isAdmin)
         {
             var comment = await _context.Comments.FirstOrDefaultAsync(c => c.Id == commentId);
 
@@ -109,10 +110,11 @@ namespace BlogApi.Infrastructure.Services
                 return CommentActionResult.NotFound;
             }
 
-            if (comment.UserId != userId)
+            if (!isAdmin && comment.UserId != userId)
             {
                 return CommentActionResult.Forbidden;
             }
+
 
             _context.Comments.Remove(comment);
             await _context.SaveChangesAsync();

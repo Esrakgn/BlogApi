@@ -64,8 +64,9 @@ namespace BlogApi.API.Controllers
             return Ok(post);
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin,Author")]
         [HttpPost]
+
         public async Task<IActionResult> Create(CreatePostDto dto)
         {
             var validationResult = await _createPostValidator.ValidateAsync(dto);
@@ -90,8 +91,9 @@ namespace BlogApi.API.Controllers
             return CreatedAtAction(nameof(GetById), new { id = createdPost.Id }, createdPost);
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin,Author")]
         [HttpPut("{id:guid}")]
+
         public async Task<IActionResult> Update(Guid id, UpdatePostDto dto)
         {
             var validationResult = await _updatePostValidator.ValidateAsync(dto);
@@ -112,7 +114,9 @@ namespace BlogApi.API.Controllers
                 return Unauthorized(new { message = "Invalid user token" });
             }
 
-            var result = await _postService.UpdateAsync(id, userId, dto);
+            var isAdmin = User.IsInRole("Admin");
+
+            var result = await _postService.UpdateAsync(id, userId, isAdmin, dto);
 
             return result switch
             {
@@ -123,8 +127,9 @@ namespace BlogApi.API.Controllers
             };
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin,Author")]
         [HttpDelete("{id:guid}")]
+
         public async Task<IActionResult> Delete(Guid id)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -133,8 +138,9 @@ namespace BlogApi.API.Controllers
             {
                 return Unauthorized(new { message = "Invalid user token" });
             }
+            var isAdmin = User.IsInRole("Admin");
 
-            var result = await _postService.DeleteAsync(id, userId);
+            var result = await _postService.DeleteAsync(id, userId, isAdmin);
 
             return result switch
             {

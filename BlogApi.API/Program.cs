@@ -62,6 +62,22 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreatePostDtoValidator>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("UiCors", policy =>
+    {
+        policy
+            .WithOrigins(
+                "http://localhost:5173",
+                "https://localhost:5173",
+                "http://127.0.0.1:5173",
+                "https://127.0.0.1:5173"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 
 // JWT authentication ayarları
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -108,6 +124,7 @@ if (app.Environment.IsDevelopment())
 // Şimdilik HTTPS yönlendirmesini bırakıyoruz
 app.UseHttpsRedirection();
 
+app.UseCors("UiCors");
 app.UseAuthentication();
 app.UseAuthorization();
 

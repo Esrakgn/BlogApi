@@ -7,6 +7,8 @@ namespace BlogApi.Domain.Enums
     public enum UserRole
     {
         Admin = 1,
-        User = 2
+        Author = 2,
+        User = 3
     }
 }
+

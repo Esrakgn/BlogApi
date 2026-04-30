@@ -86,8 +86,9 @@ namespace BlogApi.API.Controllers
             {
                 return Unauthorized(new { message = "Invalid user token" });
             }
+            var isAdmin = User.IsInRole("Admin");
 
-            var result = await _commentService.UpdateAsync(id, userId, dto);
+            var result = await _commentService.UpdateAsync(id, userId, isAdmin, dto);
 
             return result switch // switch: result hangi değerse ona karşılık gelen satır çalışır.return kullanmaya gerek kalmıyor gibi
             {
@@ -108,8 +109,9 @@ namespace BlogApi.API.Controllers
             {
                 return Unauthorized(new { message = "Invalid user token" });
             }
+            var isAdmin = User.IsInRole("Admin");
 
-            var result = await _commentService.DeleteAsync(id, userId);
+            var result = await _commentService.DeleteAsync(id, userId, isAdmin);
 
             return result switch
             {

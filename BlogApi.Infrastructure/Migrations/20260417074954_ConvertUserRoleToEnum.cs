@@ -10,6 +10,7 @@ namespace BlogApi.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // String role değerlerini yeni enum karşılıklarına çeviriyoruz
             migrationBuilder.Sql("""
                 UPDATE [Users]
                 SET [Role] = '1'
@@ -19,6 +20,12 @@ namespace BlogApi.Infrastructure.Migrations
             migrationBuilder.Sql("""
                 UPDATE [Users]
                 SET [Role] = '2'
+                WHERE [Role] = 'Author';
+            """);
+
+            migrationBuilder.Sql("""
+                UPDATE [Users]
+                SET [Role] = '3'
                 WHERE [Role] = 'User';
             """);
 
@@ -50,8 +57,14 @@ namespace BlogApi.Infrastructure.Migrations
 
             migrationBuilder.Sql("""
                 UPDATE [Users]
-                SET [Role] = 'User'
+                SET [Role] = 'Author'
                 WHERE [Role] = '2';
+            """);
+
+            migrationBuilder.Sql("""
+                UPDATE [Users]
+                SET [Role] = 'User'
+                WHERE [Role] = '3';
             """);
         }
     }

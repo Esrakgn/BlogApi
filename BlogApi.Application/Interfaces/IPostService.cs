@@ -14,7 +14,8 @@ namespace BlogApi.Application.Interfaces
 
         Task<PostDto?> GetByIdAsync(Guid id);
         Task<PostDto> CreateAsync(Guid userId, CreatePostDto dto);
-        Task<PostActionResult> UpdateAsync(Guid id, Guid userId, UpdatePostDto dto);
-        Task<PostActionResult> DeleteAsync(Guid id, Guid userId);
+        Task<PostActionResult> UpdateAsync(Guid id, Guid userId, bool isAdmin, UpdatePostDto dto);
+        Task<PostActionResult> DeleteAsync(Guid id, Guid userId, bool isAdmin);
+
     }
 }
