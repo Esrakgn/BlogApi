@@ -10,6 +10,7 @@ import PostDetailPage from './pages/PostDetailPage.jsx';
 import AuthPage from './pages/AuthPage.jsx';
 import AdminPanelPage from './pages/AdminPanelPage.jsx';
 import WriterPanelPage from './pages/WriterPanelPage.jsx';
+import ProfilePage from './pages/ProfilePage.jsx';
 import { translations } from './i18n/translations.js';
 
 export default function App() {
@@ -62,8 +63,19 @@ export default function App() {
             t={t}
           />
         )}
-        {page === 'postDetail' && <PostDetailPage postId={selectedPostId} setPage={setPage} />}
+        {page === 'postDetail' && <PostDetailPage postId={selectedPostId} setPage={setPage} user={user} />}
         {page === 'pricing' && <PricingPage t={t.pricing} />}
+        {page === 'profile' &&
+          (user ? (
+            <ProfilePage setPage={setPage} user={user} />
+          ) : (
+            <AuthPage
+              onAuthSuccess={(authUser) => {
+                setUser(authUser);
+                setPage('profile');
+              }}
+            />
+          ))}
         {page === 'auth' && (
           <AuthPage
             onAuthSuccess={(authUser) => {

@@ -209,5 +209,51 @@ namespace BlogApi.Infrastructure.Services
             await _context.SaveChangesAsync();
             return PostActionResult.Success;
         }
+
+
+            public async Task<PagedResult<PostDto>> GetMyPostsAsync(Guid userId, PostQueryParams queryParams)
+        {
+            var query = _context.Posts
+                .Include(p => p.Category)
+                .Where(p => p.AuthorId == userId)
+                .AsQueryable();
+
+            query = queryParams.SortBy?.ToLower() switch
+            {
+                "oldest" => query.OrderBy(p => p.CreatedAt),
+                _ => query.OrderByDescending(p => p.CreatedAt)
+            };
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .Skip((queryParams.PageNumber - 1) * queryParams.PageSize)
+                .Take(queryParams.PageSize)
+                .Select(p => new PostDto
+                {
+                    Id = p.Id,
+                    Title = p.Title,
+                    Content = p.Content,
+                    AuthorId = p.AuthorId,
+                    CategoryId = p.CategoryId,
+                    CategoryName = p.Category.Name,
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt
+                })
+                .ToListAsync();
+
+            var totalPages = (int)Math.Ceiling((double)totalCount / queryParams.PageSize);
+
+            return new PagedResult<PostDto>
+            {
+                Items = items,
+                PageNumber = queryParams.PageNumber,
+                PageSize = queryParams.PageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages
+            };
+        }
+
     }
 }
+

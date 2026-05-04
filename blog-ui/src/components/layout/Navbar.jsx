@@ -1,4 +1,4 @@
-import { LayoutDashboard, LogIn, LogOut, Search, Zap } from 'lucide-react';
+import { LayoutDashboard, LogIn, LogOut, Search, UserCircle, Zap } from 'lucide-react';
 
 function canManagePosts(user) {
   const role = user?.Role || user?.role;
@@ -46,6 +46,12 @@ const Navbar = ({ language, onLogout, onPanelClick, setLanguage, setPage, t, use
         </button>
         {user ? (
           <>
+            <button
+              onClick={() => setPage('profile')}
+              className="inline-flex items-center gap-2 border-2 border-black bg-white px-4 py-2 text-[10px] font-mono font-black uppercase tracking-widest hover:bg-black hover:text-white transition-colors"
+            >
+              <UserCircle size={14} /> Profilim
+            </button>
             {canManagePosts(user) && (
               <button
                 onClick={onPanelClick}

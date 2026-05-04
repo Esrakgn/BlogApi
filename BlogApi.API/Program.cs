@@ -61,6 +61,8 @@ builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreatePostDtoValidator>();
 builder.Services.AddScoped<ICommentService, CommentService>();
+builder.Services.AddScoped<IUserService, UserService>();
+
 
 builder.Services.AddCors(options =>
 {

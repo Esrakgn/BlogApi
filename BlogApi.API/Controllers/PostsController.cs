@@ -150,5 +150,32 @@ namespace BlogApi.API.Controllers
                 _ => BadRequest()
             };
         }
+
+        [Authorize]
+        [HttpGet("my")]
+        public async Task<IActionResult> GetMyPosts([FromQuery] PostQueryParams queryParams)
+        {
+            var validationResult = await _postQueryParamsValidator.ValidateAsync(queryParams);
+
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(validationResult.Errors.Select(x => new
+                {
+                    field = x.PropertyName,
+                    error = x.ErrorMessage
+                }));
+            }
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { message = "Invalid user token" });
+            }
+
+            var posts = await _postService.GetMyPostsAsync(userId, queryParams);
+            return Ok(posts);
+        }
+
     }
 }

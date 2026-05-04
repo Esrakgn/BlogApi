@@ -11,6 +11,8 @@ namespace BlogApi.Application.Interfaces
     {
         Task<PagedResult<PostDto>> GetAllAsync(string? search, Guid? categoryId, PostQueryParams queryParams);
 
+        Task<PagedResult<PostDto>> GetMyPostsAsync(Guid userId, PostQueryParams queryParams);
+
 
         Task<PostDto?> GetByIdAsync(Guid id);
         Task<PostDto> CreateAsync(Guid userId, CreatePostDto dto);
