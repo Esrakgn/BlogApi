@@ -52,5 +52,32 @@ namespace BlogApi.Infrastructure.Services
             return UserActionResult.Success;
         }
 
+
+        public async Task<UserActionResult> UpdatePasswordAsync(Guid userId, UpdatePasswordDto dto)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
+
+            if (user == null)
+            {
+                return UserActionResult.NotFound;
+            }
+
+            var isCurrentPasswordValid = BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash);
+
+            if (!isCurrentPasswordValid)
+            {
+                return UserActionResult.InvalidCredentials;
+            }
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            await _context.SaveChangesAsync();
+
+            return UserActionResult.Success;
+        }
+
+        public Task<UserActionResult> DeleteProfileAsync(Guid userId, DeleteProfileDto dto)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

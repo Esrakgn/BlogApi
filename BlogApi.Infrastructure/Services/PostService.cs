@@ -1,11 +1,10 @@
-﻿using BlogApi.Application.DTOs.Posts;
+﻿using BlogApi.Application.DTOs.Common;
+using BlogApi.Application.DTOs.Posts;
+using BlogApi.Application.Enums;
 using BlogApi.Application.Interfaces;
 using BlogApi.Domain.Entities;
 using BlogApi.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using BlogApi.Application.DTOs.Common;
-
-using BlogApi.Application.Enums;
 
 namespace BlogApi.Infrastructure.Services
 {
@@ -56,7 +55,8 @@ namespace BlogApi.Infrastructure.Services
                     CategoryId = p.CategoryId,
                     CategoryName = p.Category.Name,
                     CreatedAt = p.CreatedAt,
-                    UpdatedAt = p.UpdatedAt
+                    UpdatedAt = p.UpdatedAt,
+                    ViewCount = p.ViewCount
                 })
                 .ToListAsync();
 
@@ -72,92 +72,80 @@ namespace BlogApi.Infrastructure.Services
             };
         }
 
-
-
         public async Task<PostDto?> GetByIdAsync(Guid id)
         {
             var post = await _context.Posts
                 .Include(p => p.Category)
-                .Where(p => p.Id == id)
-                .Select(p => new PostDto
-                {
-                    Id = p.Id,
-                    Title = p.Title,
-                    Content = p.Content,
-                    AuthorId = p.AuthorId,
-                    CategoryId = p.CategoryId,
-                    CategoryName = p.Category.Name,
-                    CreatedAt = p.CreatedAt,
-                    UpdatedAt = p.UpdatedAt
-                })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(p => p.Id == id);
 
-            return post;
-            // id'ye göre tek post getirir / yoksa null döner
+            if (post == null)
+            {
+                return null;
+            }
+
+            post.ViewCount++;
+            await _context.SaveChangesAsync();
+
+            return new PostDto
+            {
+                Id = post.Id,
+                Title = post.Title,
+                Content = post.Content,
+                AuthorId = post.AuthorId,
+                CategoryId = post.CategoryId,
+                CategoryName = post.Category.Name,
+                CreatedAt = post.CreatedAt,
+                UpdatedAt = post.UpdatedAt,
+                ViewCount = post.ViewCount
+            };
         }
 
         public async Task<PostDto> CreateAsync(Guid userId, CreatePostDto dto)
         {
-            try
+            var userExists = await _context.Users.AnyAsync(u => u.Id == userId);
+            if (!userExists)
             {
-                var userExists = await _context.Users.AnyAsync(u => u.Id == userId);
-                // giriş yapan kullanıcı database'de var mı kontrol ediyoruz
-
-                if (!userExists)
-                {
-                    throw new Exception("User not found.");
-                }
-
-                var categoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
-                // gönderilen kategori database'de var mı kontrol ediyoruz
-
-                if (!categoryExists)
-                {
-                    throw new Exception("Category not found.");
-                }
-
-                var post = new Post
-                {
-                    Id = Guid.NewGuid(),
-                    Title = dto.Title,
-                    Content = dto.Content,
-                    AuthorId = userId,
-                    CategoryId = dto.CategoryId,
-                    CreatedAt = DateTime.UtcNow
-                };
-                // yeni post oluşturuyoruz
-                // authorId token'dan gelen kullanıcı id'si olacak
-
-                _context.Posts.Add(post);
-
-                await _context.SaveChangesAsync();
-
-                var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == post.CategoryId);
-                // kayıt edilen postun kategori bilgisini alıyoruz
-
-                return new PostDto
-                {
-                    Id = post.Id,
-                    Title = post.Title,
-                    Content = post.Content,
-                    AuthorId = post.AuthorId,
-                    CategoryId = post.CategoryId,
-                    CategoryName = category?.Name ?? string.Empty,
-                    CreatedAt = post.CreatedAt,
-                    UpdatedAt = post.UpdatedAt
-                };
-                // oluşturulan postu dto olarak geri döndürüyoruz
+                throw new Exception("User not found.");
             }
-            catch (Exception ex)
+
+            var categoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
+            if (!categoryExists)
             {
-                throw;
+                throw new Exception("Category not found.");
             }
+
+            var post = new Post
+            {
+                Id = Guid.NewGuid(),
+                Title = dto.Title,
+                Content = dto.Content,
+                AuthorId = userId,
+                CategoryId = dto.CategoryId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Posts.Add(post);
+            await _context.SaveChangesAsync();
+
+            var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == post.CategoryId);
+
+            return new PostDto
+            {
+                Id = post.Id,
+                Title = post.Title,
+                Content = post.Content,
+                AuthorId = post.AuthorId,
+                CategoryId = post.CategoryId,
+                CategoryName = category?.Name ?? string.Empty,
+                CreatedAt = post.CreatedAt,
+                UpdatedAt = post.UpdatedAt,
+                ViewCount = post.ViewCount
+            };
         }
 
         public async Task<PostActionResult> UpdateAsync(Guid id, Guid userId, bool isAdmin, UpdatePostDto dto)
         {
             var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == id);
-            // güncellenecek postu id'ye göre buluyoruz
 
             if (post == null)
             {
@@ -167,13 +155,9 @@ namespace BlogApi.Infrastructure.Services
             if (!isAdmin && post.AuthorId != userId)
             {
                 return PostActionResult.Forbidden;
-                //giriş yapan kullanıcı admin değilse ve postun sahibi değilse güncellemeye izin yok
             }
 
-
             var categoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
-            // gönderilen kategori database'de var mı kontrol ediyoruz
-
             if (!categoryExists)
             {
                 return PostActionResult.NotFound;
@@ -201,17 +185,15 @@ namespace BlogApi.Infrastructure.Services
             if (!isAdmin && post.AuthorId != userId)
             {
                 return PostActionResult.Forbidden;
-                //giriş yapan kullanıcı admin değilse ve postun sahibi değilse silemez 
             }
-
 
             _context.Posts.Remove(post);
             await _context.SaveChangesAsync();
+
             return PostActionResult.Success;
         }
 
-
-            public async Task<PagedResult<PostDto>> GetMyPostsAsync(Guid userId, PostQueryParams queryParams)
+        public async Task<PagedResult<PostDto>> GetMyPostsAsync(Guid userId, PostQueryParams queryParams)
         {
             var query = _context.Posts
                 .Include(p => p.Category)
@@ -238,7 +220,8 @@ namespace BlogApi.Infrastructure.Services
                     CategoryId = p.CategoryId,
                     CategoryName = p.Category.Name,
                     CreatedAt = p.CreatedAt,
-                    UpdatedAt = p.UpdatedAt
+                    UpdatedAt = p.UpdatedAt,
+                    ViewCount = p.ViewCount
                 })
                 .ToListAsync();
 
@@ -253,7 +236,5 @@ namespace BlogApi.Infrastructure.Services
                 TotalPages = totalPages
             };
         }
-
     }
 }
-

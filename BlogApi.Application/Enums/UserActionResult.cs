@@ -2,9 +2,13 @@
 using System.Collections.Generic;
 using System.Text;
 
-public enum UserActionResult
+namespace BlogApi.Application.Enums
 {
-    Success,
-    NotFound,
-    Conflict
+    public enum UserActionResult
+    {
+        Success,
+        NotFound,
+        Conflict,
+        InvalidCredentials
+    }
 }

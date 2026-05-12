@@ -14,12 +14,20 @@ namespace BlogApi.API.Controllers
         private readonly IAuthService _authService;
         private readonly IValidator<RegisterDto> _registerValidator;
         private readonly IValidator<LoginDto> _loginValidator;
+        private readonly IValidator<ForgotPasswordDto> _forgotPasswordValidator;
+        private readonly IValidator<ResetPasswordDto> _resetPasswordValidator;
 
-        public AuthController(IAuthService authService, IValidator<RegisterDto> registerValidator, IValidator<LoginDto> loginValidator)
+
+        public AuthController(IAuthService authService, IValidator<RegisterDto> registerValidator, IValidator<LoginDto> loginValidator,
+            IValidator<ForgotPasswordDto> forgotPasswordValidator,
+             IValidator<ResetPasswordDto> resetPasswordValidator)
         {
             _authService = authService;
             _registerValidator = registerValidator;
             _loginValidator = loginValidator;
+            _forgotPasswordValidator = forgotPasswordValidator;
+            _resetPasswordValidator = resetPasswordValidator;
+
         }
 
         // REGISTER
@@ -100,5 +108,51 @@ namespace BlogApi.API.Controllers
                 role
             });
         }
+
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto)
+        {
+            var validationResult = await _forgotPasswordValidator.ValidateAsync(dto);
+
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(validationResult.Errors.Select(x => new
+                {
+                    field = x.PropertyName,
+                    error = x.ErrorMessage
+                }));
+            }
+
+            await _authService.ForgotPasswordAsync(dto);
+
+            return Ok(new { message = "If the account exists, a reset link has been sent." });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
+        {
+            var validationResult = await _resetPasswordValidator.ValidateAsync(dto);
+
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(validationResult.Errors.Select(x => new
+                {
+                    field = x.PropertyName,
+                    error = x.ErrorMessage
+                }));
+            }
+
+            try
+            {
+                await _authService.ResetPasswordAsync(dto);
+                return Ok(new { message = "Password has been reset successfully." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
     }
 }

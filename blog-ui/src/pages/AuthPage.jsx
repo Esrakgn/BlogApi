@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { ArrowLeft, LogIn, PenLine, ShieldCheck, User, UserPlus } from 'lucide-react';
-import { login, register } from '../services/authService';
+import { ArrowLeft, KeyRound, LogIn, PenLine, ShieldCheck, User, UserPlus } from 'lucide-react';
+import { forgotPassword, login, register } from '../services/authService';
 import RetroWindow from '../components/common/RetroWindow.jsx';
 
 function getToken(response) {
@@ -20,6 +20,7 @@ const AuthPage = ({ onAuthSuccess }) => {
   const [success, setSuccess] = useState(null);
 
   const isLogin = mode === 'login';
+  const isForgotPassword = mode === 'forgot';
 
   function handleChange(event) {
     setForm((current) => ({
@@ -35,6 +36,12 @@ const AuthPage = ({ onAuthSuccess }) => {
     setSuccess(null);
   }
 
+  function changeMode(nextMode) {
+    setMode(nextMode);
+    setError(null);
+    setSuccess(null);
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
 
@@ -42,6 +49,12 @@ const AuthPage = ({ onAuthSuccess }) => {
       setLoading(true);
       setError(null);
       setSuccess(null);
+
+      if (isForgotPassword) {
+        await forgotPassword(form.email);
+        setSuccess('Şifre sıfırlama bağlantısı e-posta adresine gönderildi.');
+        return;
+      }
 
       const response = isLogin
         ? await login(form.email, form.password)
@@ -78,7 +91,7 @@ const AuthPage = ({ onAuthSuccess }) => {
   return (
     <div className="min-h-screen bg-[#fdfcf8] px-8 py-24">
       <div className="mx-auto max-w-xl">
-        <RetroWindow title={accountType ? (isLogin ? 'GİRİŞ_PANELİ' : 'KAYIT_PANELİ') : 'HESAP_SEÇİMİ'} color={isLogin ? 'bg-[#a7f3d0]' : 'bg-[#f472b6]'}>
+        <RetroWindow title={accountType ? (isForgotPassword ? 'ŞİFRE_YENİLE' : isLogin ? 'GİRİŞ_PANELİ' : 'KAYIT_PANELİ') : 'HESAP_SEÇİMİ'} color={isLogin ? 'bg-[#a7f3d0]' : 'bg-[#f472b6]'}>
           {!accountType ? (
             <div className="space-y-8 text-left">
               <div>
@@ -131,10 +144,12 @@ const AuthPage = ({ onAuthSuccess }) => {
                   <ArrowLeft size={14} /> Seçime dön
                 </button>
                 <h2 className="text-5xl font-serif italic font-black leading-tight text-black">
-                  {isLogin ? 'Hesabına giriş yap' : 'Yeni hesap oluştur'}
+                  {isForgotPassword ? 'Şifreni yenile' : isLogin ? 'Hesabına giriş yap' : 'Yeni hesap oluştur'}
                 </h2>
                 <p className="mt-3 text-sm font-medium leading-relaxed text-black/60">
-                  {accountType === 'Admin'
+                  {isForgotPassword
+                    ? 'E-posta adresini yaz, şifre yenileme bağlantısını gönderelim.'
+                    : accountType === 'Admin'
                     ? 'Admin hesabınla yönetim paneline giriş yapabilirsin.'
                     : accountType === 'Author'
                     ? 'Yazar hesabınla yazılarını yönetebilirsin.'
@@ -143,18 +158,18 @@ const AuthPage = ({ onAuthSuccess }) => {
               </div>
 
               <div className="flex border-2 border-black bg-white p-1 font-mono text-[10px] font-black uppercase tracking-widest">
-                <button onClick={() => setMode('login')} className={`flex-1 px-4 py-3 ${isLogin ? 'bg-black text-white' : 'hover:bg-black/5'}`} type="button">
+                <button onClick={() => changeMode('login')} className={`flex-1 px-4 py-3 ${isLogin ? 'bg-black text-white' : 'hover:bg-black/5'}`} type="button">
                   Giriş
                 </button>
                 {accountType !== 'Admin' && (
-                  <button onClick={() => setMode('register')} className={`flex-1 border-l-2 border-black px-4 py-3 ${!isLogin ? 'bg-black text-white' : 'hover:bg-black/5'}`} type="button">
+                  <button onClick={() => changeMode('register')} className={`flex-1 border-l-2 border-black px-4 py-3 ${mode === 'register' ? 'bg-black text-white' : 'hover:bg-black/5'}`} type="button">
                     Kayıt
                   </button>
                 )}
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-5">
-                {!isLogin && (
+                {!isLogin && !isForgotPassword && (
                   <label className="block">
                     <span className="mb-2 block font-mono text-[10px] font-black uppercase tracking-widest text-black/50">Ad Soyad</span>
                     <input
@@ -179,17 +194,19 @@ const AuthPage = ({ onAuthSuccess }) => {
                   />
                 </label>
 
-                <label className="block">
-                  <span className="mb-2 block font-mono text-[10px] font-black uppercase tracking-widest text-black/50">Şifre</span>
-                  <input
-                    name="password"
-                    type="password"
-                    value={form.password}
-                    onChange={handleChange}
-                    className="w-full border-2 border-black bg-white px-4 py-3 font-mono text-sm outline-none focus:bg-[#fef08a]"
-                    required
-                  />
-                </label>
+                {!isForgotPassword && (
+                  <label className="block">
+                    <span className="mb-2 block font-mono text-[10px] font-black uppercase tracking-widest text-black/50">Şifre</span>
+                    <input
+                      name="password"
+                      type="password"
+                      value={form.password}
+                      onChange={handleChange}
+                      className="w-full border-2 border-black bg-white px-4 py-3 font-mono text-sm outline-none focus:bg-[#fef08a]"
+                      required
+                    />
+                  </label>
+                )}
 
                 {error && <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#db2777]">{error}</p>}
                 {success && <p className="font-mono text-[10px] font-black uppercase tracking-widest text-green-700">{success}</p>}
@@ -198,9 +215,29 @@ const AuthPage = ({ onAuthSuccess }) => {
                   disabled={loading}
                   className="flex w-full items-center justify-center gap-3 border-2 border-black bg-[#db2777] px-8 py-4 font-mono text-[10px] font-black uppercase tracking-widest text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isLogin ? <LogIn size={16} /> : <UserPlus size={16} />}
-                  {loading ? 'İşleniyor...' : isLogin ? 'Giriş Yap' : 'Kayıt Ol'}
+                  {isForgotPassword ? <KeyRound size={16} /> : isLogin ? <LogIn size={16} /> : <UserPlus size={16} />}
+                  {loading ? 'İşleniyor...' : isForgotPassword ? 'Bağlantı Gönder' : isLogin ? 'Giriş Yap' : 'Kayıt Ol'}
                 </button>
+
+                {isLogin && (
+                  <button
+                    type="button"
+                    onClick={() => changeMode('forgot')}
+                    className="w-full text-center font-mono text-[10px] font-black uppercase tracking-widest text-black/50 hover:text-black"
+                  >
+                    Şifremi unuttum
+                  </button>
+                )}
+
+                {isForgotPassword && (
+                  <button
+                    type="button"
+                    onClick={() => changeMode('login')}
+                    className="w-full text-center font-mono text-[10px] font-black uppercase tracking-widest text-black/50 hover:text-black"
+                  >
+                    Giriş ekranına dön
+                  </button>
+                )}
               </form>
             </div>
           )}

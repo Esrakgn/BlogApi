@@ -59,7 +59,7 @@ const HomePage = ({ onPostSelect, setPage, t }) => {
         <div className="relative group">
           <RetroWindow title={t.home.previewTitle} color="bg-black" className="w-full">
             <div className="aspect-[16/10] bg-[#fdfcf8] relative overflow-hidden border-2 border-black">
-              <img src="single.png" alt={t.home.previewHeading} className="w-full h-full object-cover" />
+              <img src="/images/ui/single.png" alt={t.home.previewHeading} className="w-full h-full object-cover" />
             </div>
             <div className="mt-6 space-y-3 text-left">
               <h3 className="text-2xl font-serif italic font-bold text-black">{t.home.previewHeading}</h3>
@@ -74,7 +74,7 @@ const HomePage = ({ onPostSelect, setPage, t }) => {
       <div className="max-w-7xl mx-auto px-8 text-center">
         <h4 className="text-[10px] font-mono font-black uppercase tracking-[0.4em] text-[#db2777] mb-8">{t.home.bridgeKicker}</h4>
         <div className="relative left-1/2 mb-12 w-screen max-w-none -translate-x-1/2 overflow-hidden bg-[#f2eee8]">
-          <img src="tavus.png" alt={t.home.bridgeKicker} className="mx-auto h-[260px] w-full object-cover object-center md:h-[420px]" />
+          <img src="/images/ui/tavus.png" alt={t.home.bridgeKicker} className="mx-auto h-[260px] w-full object-cover object-center md:h-[420px]" />
         </div>
         <p className="text-3xl font-serif italic max-w-3xl mx-auto leading-relaxed text-black/80">"{t.home.bridgeQuote}"</p>
       </div>

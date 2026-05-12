@@ -7,6 +7,9 @@ namespace BlogApi.Application.Interfaces
     {
         Task<UserActionResult> UpdateProfileAsync(Guid userId, UpdateProfileDto dto);
         Task<UserActionResult> UpdateEmailAsync(Guid userId, UpdateEmailDto dto);
+        Task<UserActionResult> UpdatePasswordAsync(Guid userId, UpdatePasswordDto dto);
+
+        Task<UserActionResult> DeleteProfileAsync(Guid userId, DeleteProfileDto dto);
 
     }
 }

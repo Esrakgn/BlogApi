@@ -14,5 +14,7 @@ namespace BlogApi.Application.DTOs.Posts
         public DateTime? UpdatedAt { get; set; }
         public Guid CategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;
+        public int ViewCount { get; set; }
+
     }
 }

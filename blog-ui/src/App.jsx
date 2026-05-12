@@ -67,7 +67,7 @@ export default function App() {
         {page === 'pricing' && <PricingPage t={t.pricing} />}
         {page === 'profile' &&
           (user ? (
-            <ProfilePage setPage={setPage} user={user} />
+            <ProfilePage onLogout={handleLogout} setPage={setPage} user={user} />
           ) : (
             <AuthPage
               onAuthSuccess={(authUser) => {

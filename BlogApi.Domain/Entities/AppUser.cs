@@ -26,5 +26,12 @@ namespace BlogApi.Domain.Entities
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();
         // kullanıcının yazdığı yorumları tutar / bir kullanıcı birden fazla yorum yazabilir
 
+        public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
+
+        public bool IsDeleted { get; set; } = false;
+
+        public DateTime? DeletedAt { get; set; }
+
+        // soft delete yapıyoruz burda kullanıcı kaydı gerçekten durur ama uygulama onu “aktif değil” kabul eder.
     }
 }

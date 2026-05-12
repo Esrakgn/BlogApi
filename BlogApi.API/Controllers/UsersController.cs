@@ -16,15 +16,18 @@ namespace BlogApi.API.Controllers
         private readonly IUserService _userService;
         private readonly IValidator<UpdateProfileDto> _updateProfileValidator;
         private readonly IValidator<UpdateEmailDto> _updateEmailValidator;
+        private readonly IValidator<UpdatePasswordDto> _updatePasswordValidator;
+
 
 
         public UsersController(
             IUserService userService,
-            IValidator<UpdateProfileDto> updateProfileValidator, IValidator<UpdateEmailDto> updateEmailValidator)
+            IValidator<UpdateProfileDto> updateProfileValidator, IValidator<UpdateEmailDto> updateEmailValidator, IValidator<UpdatePasswordDto> updatePasswordValidator)
         {
             _userService = userService;
             _updateProfileValidator = updateProfileValidator;
-            _updateEmailValidator = updateEmailValidator; 
+            _updateEmailValidator = updateEmailValidator;
+            _updatePasswordValidator = updatePasswordValidator;
         }
 
         [HttpPut("profile")]
@@ -89,6 +92,39 @@ namespace BlogApi.API.Controllers
                 _ => BadRequest()
             };
         }
+
+        [HttpPut("password")]
+        public async Task<IActionResult> UpdatePassword([FromBody] UpdatePasswordDto dto)
+        {
+            var validationResult = await _updatePasswordValidator.ValidateAsync(dto);
+
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(validationResult.Errors.Select(x => new
+                {
+                    field = x.PropertyName,
+                    error = x.ErrorMessage
+                }));
+            }
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { message = "Invalid user token" });
+            }
+
+            var result = await _userService.UpdatePasswordAsync(userId, dto);
+
+            return result switch
+            {
+                UserActionResult.NotFound => NotFound(new { message = "User not found" }),
+                UserActionResult.InvalidCredentials => BadRequest(new { message = "Current password is incorrect" }),
+                UserActionResult.Success => NoContent(),
+                _ => BadRequest()
+            };
+        }
+
 
     }
 }

@@ -14,13 +14,15 @@ import {
   Save,
   Settings,
   Shield,
+  Trash2,
   User,
   Users,
 } from 'lucide-react';
 import RetroWindow from '../components/common/RetroWindow.jsx';
 import { getProfile } from '../services/authService';
-import { getPosts } from '../services/postService';
-import { formatPostDate, getPostItems } from '../utils/postMapper';
+import { getMyPosts } from '../services/postService';
+import { deleteAccount, updateEmail, updatePassword, updateProfile } from '../services/userService';
+import { formatPostDate, getPostCommentCount, getPostItems, getPostViewCount } from '../utils/postMapper';
 
 const tabs = [
   { id: 'dashboard', label: 'Özet', icon: Activity },
@@ -33,6 +35,14 @@ const notificationOptions = [
   'Yeni yorumlarda bildirim al',
   'Haftalık içerik özetini gönder',
   'Güvenlik uyarılarını e-posta ile bildir',
+];
+
+const avatarPresets = [
+  { label: 'Avatar 1', src: '/avatars/avatar1.png' },
+  { label: 'Avatar 2', src: '/avatars/avatar2.png' },
+  { label: 'Avatar 3', src: '/avatars/avatar3.png' },
+  { label: 'Avatar 4', src: '/avatars/avatar4.png' },
+  { label: 'Avatar 5', src: '/avatars/avatar5.png' },
 ];
 
 function readJwtPayload(token) {
@@ -54,10 +64,6 @@ function readJwtPayload(token) {
   } catch {
     return null;
   }
-}
-
-function normalizeId(value) {
-  return value === undefined || value === null ? '' : String(value).trim().toLowerCase();
 }
 
 function getUserField(user, ...keys) {
@@ -89,6 +95,7 @@ function getUserInfo(user, apiProfile) {
 
   const fullName =
     getUserField(user, 'fullName', 'FullName', 'name', 'Name') ||
+    apiProfile?.fullName ||
     tokenPayload?.unique_name ||
     tokenPayload?.name ||
     email ||
@@ -130,15 +137,36 @@ function getStatusClass(status) {
   return 'bg-[#fef08a]';
 }
 
-const ProfilePage = ({ setPage, user }) => {
+function getFollowerCount(user, apiProfile) {
+  const value =
+    apiProfile?.followerCount ??
+    apiProfile?.FollowerCount ??
+    apiProfile?.followersCount ??
+    apiProfile?.FollowersCount ??
+    apiProfile?.followers?.length ??
+    apiProfile?.Followers?.length ??
+    user?.followerCount ??
+    user?.FollowerCount ??
+    user?.followersCount ??
+    user?.FollowersCount ??
+    user?.followers?.length ??
+    user?.Followers?.length ??
+    0;
+
+  return Number(value) || 0;
+}
+
+const ProfilePage = ({ onLogout, setPage, user }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [apiProfile, setApiProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [message, setMessage] = useState(null);
   const userInfo = useMemo(() => getUserInfo(user, apiProfile), [user, apiProfile]);
   const profileStorageKey = `profile:${userInfo.id || userInfo.email || 'guest'}`;
   const [profileForm, setProfileForm] = useState({
+    fullName: '',
     avatar: '',
     bio: '',
     website: '',
@@ -147,7 +175,8 @@ const ProfilePage = ({ setPage, user }) => {
   });
   const [settingsForm, setSettingsForm] = useState({
     email: '',
-    password: '',
+    currentPassword: '',
+    newPassword: '',
     notifications: notificationOptions,
   });
 
@@ -157,7 +186,7 @@ const ProfilePage = ({ setPage, user }) => {
         setLoading(true);
         const [profileResponse, postsResponse] = await Promise.allSettled([
           getProfile(),
-          getPosts({ pageNumber: 1, pageSize: 50 }),
+          getMyPosts({ pageNumber: 1, pageSize: 50, sortBy: 'newest' }),
         ]);
 
         if (profileResponse.status === 'fulfilled') {
@@ -179,6 +208,7 @@ const ProfilePage = ({ setPage, user }) => {
     const storedProfile = JSON.parse(localStorage.getItem(profileStorageKey) || '{}');
 
     setProfileForm({
+      fullName: storedProfile.fullName || userInfo.fullName || '',
       avatar: storedProfile.avatar || '',
       bio: storedProfile.bio || '',
       website: storedProfile.website || '',
@@ -188,25 +218,27 @@ const ProfilePage = ({ setPage, user }) => {
 
     setSettingsForm({
       email: storedProfile.email || userInfo.email || '',
-      password: '',
+      currentPassword: '',
+      newPassword: '',
       notifications: storedProfile.notifications || notificationOptions,
     });
-  }, [profileStorageKey, userInfo.email]);
+  }, [profileStorageKey, userInfo.email, userInfo.fullName]);
 
-  const ownPosts = useMemo(() => {
-    const currentUserId = normalizeId(userInfo.id);
-
-    if (!currentUserId) {
-      return [];
-    }
-
-    return posts.filter((post) => normalizeId(post.authorId || post.AuthorId) === currentUserId);
-  }, [posts, userInfo.id]);
+  const ownPosts = useMemo(() => posts, [posts]);
+  const totalViewCount = useMemo(
+    () => ownPosts.reduce((total, post) => total + getPostViewCount(post), 0),
+    [ownPosts]
+  );
+  const totalCommentCount = useMemo(
+    () => ownPosts.reduce((total, post) => total + getPostCommentCount(post), 0),
+    [ownPosts]
+  );
+  const followerCount = useMemo(() => getFollowerCount(user, apiProfile), [user, apiProfile]);
 
   const stats = [
-    { label: 'Görüntülenme', value: ownPosts.length * 128 + 320, icon: Eye, color: 'bg-[#fef08a]' },
-    { label: 'Yorum', value: ownPosts.length * 7, icon: MessageCircle, color: 'bg-[#bfdbfe]' },
-    { label: 'Takipçi', value: ownPosts.length * 24 + 18, icon: Users, color: 'bg-[#a7f3d0]' },
+    { label: 'Görüntülenme', value: totalViewCount, icon: Eye, color: 'bg-[#fef08a]' },
+    { label: 'Yorum', value: totalCommentCount, icon: MessageCircle, color: 'bg-[#bfdbfe]' },
+    { label: 'Takipçi', value: followerCount, icon: Users, color: 'bg-[#a7f3d0]' },
   ];
 
   const activities = [
@@ -226,17 +258,91 @@ const ProfilePage = ({ setPage, user }) => {
     );
   }
 
-  function saveProfile(event) {
+  async function saveProfile(event) {
     event.preventDefault();
-    saveLocalProfile();
-    setMessage('Profil bilgileri kaydedildi.');
+
+    try {
+      await updateProfile({ fullName: profileForm.fullName });
+
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      localStorage.setItem(
+        'user',
+        JSON.stringify({
+          ...storedUser,
+          fullName: profileForm.fullName,
+          FullName: profileForm.fullName,
+          name: profileForm.fullName,
+          Name: profileForm.fullName,
+        })
+      );
+      setApiProfile((current) => ({ ...(current || {}), fullName: profileForm.fullName }));
+
+      saveLocalProfile();
+      setMessage('Profil bilgileri kaydedildi.');
+    } catch (error) {
+      setMessage(error?.message || 'Profil güncellenemedi.');
+    }
   }
 
-  function saveSettings(event) {
+  async function saveSettings(event) {
     event.preventDefault();
-    saveLocalProfile();
-    setSettingsForm((current) => ({ ...current, password: '' }));
-    setMessage('Ayar tercihleri kaydedildi.');
+
+    try {
+      if (settingsForm.email && settingsForm.email !== (userInfo.email || '')) {
+        await updateEmail({ newEmail: settingsForm.email });
+
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        localStorage.setItem(
+          'user',
+          JSON.stringify({
+            ...storedUser,
+            email: settingsForm.email,
+            Email: settingsForm.email,
+          })
+        );
+        setApiProfile((current) => ({ ...(current || {}), email: settingsForm.email }));
+      }
+
+      if ((settingsForm.currentPassword && !settingsForm.newPassword) || (!settingsForm.currentPassword && settingsForm.newPassword)) {
+        setMessage('Şifre güncellemek için mevcut ve yeni şifreyi birlikte gir.');
+        return;
+      }
+
+      if (settingsForm.currentPassword || settingsForm.newPassword) {
+        await updatePassword({
+          currentPassword: settingsForm.currentPassword,
+          newPassword: settingsForm.newPassword,
+        });
+      }
+
+      saveLocalProfile();
+      setSettingsForm((current) => ({ ...current, currentPassword: '', newPassword: '' }));
+      setMessage('Ayar tercihleri kaydedildi.');
+    } catch (error) {
+      setMessage(error?.message || 'Ayarlar güncellenemedi.');
+    }
+  }
+
+  async function handleDeleteAccount() {
+    const confirmed = window.confirm('Hesabını kalıcı olarak silmek istediğine emin misin?');
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingAccount(true);
+      setMessage(null);
+      await deleteAccount();
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      onLogout?.();
+      setPage('home');
+    } catch (error) {
+      setMessage(error?.message || 'Hesap silinemedi.');
+    } finally {
+      setDeletingAccount(false);
+    }
   }
 
   return (
@@ -339,13 +445,37 @@ const ProfilePage = ({ setPage, user }) => {
                     <div className="flex aspect-square items-center justify-center overflow-hidden border-2 border-black bg-[#db2777] font-mono text-5xl font-black text-white">
                       {profileForm.avatar ? <img src={profileForm.avatar} alt={userInfo.fullName} className="h-full w-full object-cover" /> : getInitials(userInfo.fullName)}
                     </div>
-                    <label className="block">
-                      <span className="mb-2 block font-mono text-[10px] font-black uppercase tracking-widest text-black/50">Avatar URL</span>
-                      <input name="avatar" value={profileForm.avatar} onChange={(event) => setProfileForm((current) => ({ ...current, avatar: event.target.value }))} className="w-full border-2 border-black px-3 py-2 font-mono text-xs outline-none focus:bg-[#fef08a]" />
-                    </label>
+                    <div>
+                      <span className="mb-2 block font-mono text-[10px] font-black uppercase tracking-widest text-black/50">Avatar Presetleri</span>
+                      <div className="grid grid-cols-2 gap-2">
+                        {avatarPresets.map((preset) => (
+                          <button
+                            key={preset.src}
+                            type="button"
+                            onClick={() => setProfileForm((current) => ({ ...current, avatar: preset.src }))}
+                            className={`flex items-center gap-2 border-2 border-black px-2 py-2 text-left ${
+                              profileForm.avatar === preset.src ? 'bg-[#fef08a]' : 'bg-white'
+                            }`}
+                          >
+                            <img src={preset.src} alt={preset.label} className="h-9 w-9 border-2 border-black object-cover [image-rendering:pixelated]" />
+                            <span className="font-mono text-[9px] font-black uppercase leading-tight tracking-widest text-black/70">{preset.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-5">
+                    <label className="block">
+                      <span className="mb-2 block font-mono text-[10px] font-black uppercase tracking-widest text-black/50">Ad Soyad</span>
+                      <input
+                        name="fullName"
+                        value={profileForm.fullName}
+                        onChange={(event) => setProfileForm((current) => ({ ...current, fullName: event.target.value }))}
+                        className="w-full border-2 border-black px-4 py-3 text-sm outline-none focus:bg-[#fef08a]"
+                      />
+                    </label>
+
                     <label className="block">
                       <span className="mb-2 block font-mono text-[10px] font-black uppercase tracking-widest text-black/50">Bio</span>
                       <textarea name="bio" value={profileForm.bio} onChange={(event) => setProfileForm((current) => ({ ...current, bio: event.target.value }))} rows={6} className="w-full resize-y border-2 border-black px-4 py-3 text-sm outline-none focus:bg-[#fef08a]" placeholder="Kendini kısa bir cümleyle anlat..." />
@@ -428,7 +558,7 @@ const ProfilePage = ({ setPage, user }) => {
             {activeTab === 'settings' && (
               <RetroWindow title="AYARLAR" color="bg-[#bfdbfe]">
                 <form onSubmit={saveSettings} className="space-y-6 text-left">
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-4 md:grid-cols-3">
                     <label className="block">
                       <span className="mb-2 flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-widest text-black/50">
                         <Mail size={13} /> E-posta
@@ -437,9 +567,27 @@ const ProfilePage = ({ setPage, user }) => {
                     </label>
                     <label className="block">
                       <span className="mb-2 flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-widest text-black/50">
+                        <Shield size={13} /> Mevcut Şifre
+                      </span>
+                      <input
+                        name="currentPassword"
+                        type="password"
+                        value={settingsForm.currentPassword}
+                        onChange={(event) => setSettingsForm((current) => ({ ...current, currentPassword: event.target.value }))}
+                        className="w-full border-2 border-black px-4 py-3 font-mono text-sm outline-none focus:bg-[#fef08a]"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-2 flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-widest text-black/50">
                         <Shield size={13} /> Yeni Şifre
                       </span>
-                      <input name="password" type="password" value={settingsForm.password} onChange={(event) => setSettingsForm((current) => ({ ...current, password: event.target.value }))} className="w-full border-2 border-black px-4 py-3 font-mono text-sm outline-none focus:bg-[#fef08a]" placeholder="Backend bağlanınca aktif edilir" />
+                      <input
+                        name="newPassword"
+                        type="password"
+                        value={settingsForm.newPassword}
+                        onChange={(event) => setSettingsForm((current) => ({ ...current, newPassword: event.target.value }))}
+                        className="w-full border-2 border-black px-4 py-3 font-mono text-sm outline-none focus:bg-[#fef08a]"
+                      />
                     </label>
                   </div>
 
@@ -473,6 +621,21 @@ const ProfilePage = ({ setPage, user }) => {
                     <Save size={15} /> Ayarları Kaydet
                   </button>
                 </form>
+
+                <div className="mt-8 border-2 border-black bg-white p-5 text-left">
+                  <div className="mb-2 font-mono text-[10px] font-black uppercase tracking-widest text-[#db2777]">Tehlikeli Alan</div>
+                  <p className="mb-4 text-sm leading-6 text-black/60">
+                    Hesabını silersen oturumun kapatılır. Bu işlem geri alınamaz.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleDeleteAccount}
+                    disabled={deletingAccount}
+                    className="inline-flex items-center gap-2 border-2 border-black bg-white px-5 py-3 font-mono text-[10px] font-black uppercase tracking-widest text-[#db2777] hover:bg-[#db2777] hover:text-white disabled:opacity-60"
+                  >
+                    <Trash2 size={15} /> {deletingAccount ? 'Siliniyor...' : 'Hesabımı Sil'}
+                  </button>
+                </div>
               </RetroWindow>
             )}
           </section>

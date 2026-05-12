@@ -18,6 +18,8 @@ namespace BlogApi.Infrastructure.Data
 
         public DbSet<Category> Categories { get; set; }
         public DbSet<Comment> Comments { get; set; }
+        public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -57,6 +59,13 @@ namespace BlogApi.Infrastructure.Data
                 .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
             //bir yorum bir kullanıcıya ait, birden cok yorum atabilir 
+
+            modelBuilder.Entity<PasswordResetToken>()
+               .HasOne(t => t.User)
+               .WithMany(u => u.PasswordResetTokens)
+               .HasForeignKey(t => t.UserId)
+               .OnDelete(DeleteBehavior.Cascade);
+
 
         }
 

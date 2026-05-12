@@ -11,6 +11,8 @@ namespace BlogApi.Application.Interfaces
         Task<RegisterResponseDto> RegisterAsync(RegisterDto dto);
 
         Task<AuthResponseDto> LoginAsync(LoginDto dto);
+        Task ForgotPasswordAsync(ForgotPasswordDto dto);
+        Task ResetPasswordAsync(ResetPasswordDto dto);
 
     }
 }

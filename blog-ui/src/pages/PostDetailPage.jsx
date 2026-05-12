@@ -245,7 +245,7 @@ const PostDetailPage = ({ postId, setPage, user }) => {
             </div>
 
             <div className="overflow-hidden border-2 border-black bg-[#f2eee8]">
-              <img src={getPostImage(post.title) || 'tavus.png'} alt={post.title} className="h-[260px] w-full object-cover md:h-[420px]" />
+              <img src={getPostImage(post.title) || '/images/ui/tavus.png'} alt={post.title} className="h-[260px] w-full object-cover md:h-[420px]" />
             </div>
 
             <RetroWindow title="POST_CONTENT" color="bg-[#a7f3d0]">

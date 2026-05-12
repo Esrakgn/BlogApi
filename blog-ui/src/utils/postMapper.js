@@ -8,7 +8,7 @@ export function getPostImage(title) {
     .replace(/ı/g, 'i');
 
   if (normalizedTitle.includes('c#') && normalizedTitle.includes('generic')) {
-    return 'computer.png';
+    return '/images/posts/computer.png';
   }
 
   if (
@@ -17,7 +17,7 @@ export function getPostImage(title) {
     normalizedTitle.includes('katman') &&
     normalizedTitle.includes('mimari')
   ) {
-    return 'webapi.png';
+    return '/images/posts/webapi.png';
   }
 
   if (
@@ -26,11 +26,11 @@ export function getPostImage(title) {
     normalizedTitle.includes('destekli') &&
     normalizedTitle.includes('blog')
   ) {
-    return 'ai.png';
+    return '/images/posts/ai.png';
   }
 
   if (normalizedTitle.includes('sql') && normalizedTitle.includes('injection')) {
-    return 'sql.png';
+    return '/images/posts/sql.png';
   }
 
   if (
@@ -38,7 +38,7 @@ export function getPostImage(title) {
     normalizedTitle.includes('service') &&
     normalizedTitle.includes('katman')
   ) {
-    return 'asp.png';
+    return '/images/posts/asp.png';
   }
 
   if (
@@ -46,7 +46,7 @@ export function getPostImage(title) {
     normalizedTitle.includes('component') &&
     normalizedTitle.includes('mantig')
   ) {
-    return 'react.png';
+    return '/images/posts/react.png';
   }
 
   return null;
@@ -72,6 +72,32 @@ export function formatPostDate(value, locale = 'tr-TR') {
   }).format(new Date(value));
 }
 
+export function getPostViewCount(post) {
+  const value =
+    post?.viewCount ??
+    post?.ViewCount ??
+    post?.views ??
+    post?.Views ??
+    post?.readCount ??
+    post?.ReadCount ??
+    0;
+
+  return Number(value) || 0;
+}
+
+export function getPostCommentCount(post) {
+  const value =
+    post?.commentCount ??
+    post?.CommentCount ??
+    post?.commentsCount ??
+    post?.CommentsCount ??
+    post?.comments?.length ??
+    post?.Comments?.length ??
+    0;
+
+  return Number(value) || 0;
+}
+
 export function mapPostToArticle(post, index = 0, locale = 'tr-TR') {
   return {
     id: post.id,
@@ -82,6 +108,8 @@ export function mapPostToArticle(post, index = 0, locale = 'tr-TR') {
     date: formatPostDate(post.createdAt, locale),
     authorId: post.authorId,
     categoryId: post.categoryId,
+    viewCount: getPostViewCount(post),
+    commentCount: getPostCommentCount(post),
     image: getPostImage(post.title),
     windowColor: windowColors[index % windowColors.length],
   };

@@ -4,6 +4,10 @@ export async function getPosts(params) {
   return axiosClient.get('/posts', { params });
 }
 
+export async function getMyPosts(params) {
+  return axiosClient.get('/posts/my', { params });
+}
+
 export async function getPostById(id) {
   return axiosClient.get(`/posts/${id}`);
 }

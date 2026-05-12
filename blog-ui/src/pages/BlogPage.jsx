@@ -55,7 +55,7 @@ const BlogPage = ({ onPostSelect, t }) => {
           <div className="absolute inset-0 opacity-[0.15]" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '10px 10px' }} />
           <RetroWindow title="THE DANCE" className="w-full max-w-md relative z-10">
             <div className="aspect-square bg-white border border-black overflow-hidden p-3">
-              <img src="danss.png" alt="THE DANCE" className="h-full w-full object-contain" />
+              <img src="/images/ui/danss.png" alt="THE DANCE" className="h-full w-full object-contain" />
             </div>
           </RetroWindow>
         </div>
@@ -180,7 +180,7 @@ const BlogPage = ({ onPostSelect, t }) => {
                 </button>
               </div>
               <div className="bg-black p-2 border-2 border-black shadow-[8px_8px_0px_0px_rgba(219,39,119,1)]">
-                <img src="tavus.png" alt={activeContent.title} className="w-full grayscale contrast-125 opacity-90" />
+                <img src="/images/ui/tavus.png" alt={activeContent.title} className="w-full grayscale contrast-125 opacity-90" />
               </div>
             </div>
           </div>
