@@ -2,6 +2,7 @@ using BlogApi.Application.Interfaces;
 using BlogApi.Infrastructure.Data;
 using BlogApi.Infrastructure.Helpers;
 using BlogApi.Infrastructure.Services;
+using BlogApi.Infrastructure.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -11,6 +12,7 @@ using FluentValidation;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+LoadEnvFile(builder.Configuration, Path.Combine(builder.Environment.ContentRootPath, "..", ".env"));
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddControllers();
@@ -62,6 +64,10 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreatePostDtoValidator>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection("EmailSettings"));
+
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 
 builder.Services.AddCors(options =>
@@ -134,3 +140,20 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+static void LoadEnvFile(ConfigurationManager configuration, string envPath)
+{
+    if (!File.Exists(envPath))
+    {
+        return;
+    }
+
+    var values = File.ReadAllLines(envPath)
+        .Select(line => line.Trim())
+        .Where(line => !string.IsNullOrWhiteSpace(line) && !line.StartsWith("#"))
+        .Select(line => line.Split('=', 2))
+        .Where(parts => parts.Length == 2)
+        .ToDictionary(parts => parts[0].Trim(), parts => (string?)parts[1].Trim());
+
+    configuration.AddInMemoryCollection(values);
+}

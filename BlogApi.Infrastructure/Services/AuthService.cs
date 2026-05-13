@@ -17,12 +17,16 @@ namespace BlogApi.Infrastructure.Services
         private readonly AppDbContext _context;
 
         private readonly JwtTokenGenerator _jwtTokenGenerator;
+        private readonly IEmailService _emailService;
 
-        public AuthService(AppDbContext context, JwtTokenGenerator jwtTokenGenerator)
+
+        public AuthService( AppDbContext context, JwtTokenGenerator jwtTokenGenerator,IEmailService emailService)
         {
             _context = context;
             _jwtTokenGenerator = jwtTokenGenerator;
+            _emailService = emailService;
         }
+
 
         public async Task<RegisterResponseDto> RegisterAsync(RegisterDto dto)
         {
@@ -138,8 +142,15 @@ namespace BlogApi.Infrastructure.Services
             _context.PasswordResetTokens.Add(resetToken);
             await _context.SaveChangesAsync();
 
-            // Mail servisi yoksa test için token'ı logluyoruz
-            Console.WriteLine($"[RESET TOKEN] {user.Email} -> {rawToken}");
+            // Mail servisi 
+            var resetLink = $"http://localhost:5173/reset-password?token={Uri.EscapeDataString(rawToken)}";
+
+            await _emailService.SendAsync(
+                user.Email,
+                "Password Reset",
+                $"<p>Merhaba,</p><p>Şifrenizi yenilemek için aşağıdaki bağlantıya tıklayın:</p><p><a href='{resetLink}'>Şifremi Yenile</a></p><p>Bu bağlantı 15 dakika geçerlidir.</p>"
+            );
+
         }
 
         public async Task ResetPasswordAsync(ResetPasswordDto dto)

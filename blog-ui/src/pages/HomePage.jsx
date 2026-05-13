@@ -70,7 +70,7 @@ const HomePage = ({ onPostSelect, setPage, t }) => {
       </div>
     </section>
 
-    <section className="py-32 bg-white border-y-2 border-black relative overflow-hidden">
+    <section className="py-32 bg-[#f2eee8] border-y-2 border-black relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-8 text-center">
         <h4 className="text-[10px] font-mono font-black uppercase tracking-[0.4em] text-[#db2777] mb-8">{t.home.bridgeKicker}</h4>
         <div className="relative left-1/2 mb-12 w-screen max-w-none -translate-x-1/2 overflow-hidden bg-[#f2eee8]">

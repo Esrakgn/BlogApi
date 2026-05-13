@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Edit3, Plus, Save, Trash2, X } from 'lucide-react';
-import { getCategories } from '../../services/categoryService';
+import { createCategory, deleteCategory, getCategories } from '../../services/categoryService';
 import { createPost, deletePost, getPosts, updatePost } from '../../services/postService';
 import { getPostItems } from '../../utils/postMapper';
 import RetroWindow from '../common/RetroWindow';
@@ -65,7 +65,10 @@ const PostManagementPanel = ({ mode, user }) => {
   const [editingPostId, setEditingPostId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [categoryName, setCategoryName] = useState('');
+  const [categorySaving, setCategorySaving] = useState(false);
   const [error, setError] = useState(null);
+  const [categoryMessage, setCategoryMessage] = useState(null);
 
   const isAdmin = mode === 'admin';
   const userRole = getUserRole(user);
@@ -152,6 +155,53 @@ const PostManagementPanel = ({ mode, user }) => {
     }
   }
 
+  async function handleCategorySubmit(event) {
+    event.preventDefault();
+
+    const name = categoryName.trim();
+
+    if (!name) {
+      setCategoryMessage('Kategori adı boş olamaz.');
+      return;
+    }
+
+    try {
+      setCategorySaving(true);
+      setCategoryMessage(null);
+      await createCategory({ name });
+      setCategoryName('');
+      setCategoryMessage('Kategori eklendi.');
+      await loadData();
+    } catch (err) {
+      setCategoryMessage(err.message || 'Kategori eklenemedi.');
+    } finally {
+      setCategorySaving(false);
+    }
+  }
+
+  async function handleCategoryDelete(category) {
+    const categoryId = category.id || category.Id;
+    const categoryLabel = category.name || category.Name;
+    const confirmed = window.confirm(`"${categoryLabel}" kategorisini silmek istediğine emin misin?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setCategoryMessage(null);
+      await deleteCategory(categoryId);
+      setCategoryMessage('Kategori silindi.');
+      await loadData();
+    } catch (err) {
+      if (err.status === 409) {
+        setCategoryMessage('Bu kategori yazılarda kullanıldığı için silinemez.');
+      } else {
+        setCategoryMessage(err.message || 'Kategori silinemedi.');
+      }
+    }
+  }
+
   async function handleDelete(postId) {
     const confirmed = window.confirm('Bu yazıyı silmek istediğine emin misin?');
 
@@ -184,6 +234,45 @@ const PostManagementPanel = ({ mode, user }) => {
         </div>
 
         <div className="grid gap-10 lg:grid-cols-[420px_1fr]">
+          <div className="space-y-8">
+          {isAdmin && (
+            <RetroWindow title="KATEGORİ_EKLE" color="bg-[#fef08a]">
+              <form onSubmit={handleCategorySubmit} className="space-y-4 text-left">
+                <label className="block">
+                  <span className="mb-2 block font-mono text-[10px] font-black uppercase tracking-widest text-black/50">Kategori Adı</span>
+                  <input
+                    value={categoryName}
+                    onChange={(event) => setCategoryName(event.target.value)}
+                    placeholder="Örn: Machine Learning"
+                    className="w-full border-2 border-black px-4 py-3 font-mono text-sm outline-none focus:bg-[#fef08a]"
+                  />
+                </label>
+                {categoryMessage && <p className="font-mono text-[10px] font-black uppercase tracking-widest text-black/50">{categoryMessage}</p>}
+                <button
+                  disabled={categorySaving}
+                  className="inline-flex w-full items-center justify-center gap-2 border-2 border-black bg-black px-5 py-4 font-mono text-[10px] font-black uppercase tracking-widest text-white shadow-[4px_4px_0px_0px_rgba(219,39,119,1)] hover:bg-[#db2777] disabled:opacity-60"
+                >
+                  <Plus size={15} /> {categorySaving ? 'Ekleniyor...' : 'Kategori Ekle'}
+                </button>
+              </form>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                {categories.map((category) => (
+                  <span key={category.id || category.Id} className="inline-flex items-center gap-2 border-2 border-black bg-white px-3 py-2 font-mono text-[9px] font-black uppercase tracking-widest">
+                    {category.name || category.Name}
+                    <button
+                      type="button"
+                      onClick={() => handleCategoryDelete(category)}
+                      className="border-l-2 border-black pl-2 text-[#db2777] hover:text-black"
+                      aria-label={`${category.name || category.Name} kategorisini sil`}
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </RetroWindow>
+          )}
           <RetroWindow title={editingPostId ? 'YAZI_GÜNCELLE' : 'YENİ_YAZI'} color={editingPostId ? 'bg-[#bfdbfe]' : 'bg-[#a7f3d0]'}>
             <form onSubmit={handleSubmit} className="space-y-5 text-left">
               <label className="block">
@@ -208,8 +297,8 @@ const PostManagementPanel = ({ mode, user }) => {
                 >
                   <option value="">Kategori seç</option>
                   {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
+                    <option key={category.id || category.Id} value={category.id || category.Id}>
+                      {category.name || category.Name}
                     </option>
                   ))}
                 </select>
@@ -249,6 +338,8 @@ const PostManagementPanel = ({ mode, user }) => {
               </div>
             </form>
           </RetroWindow>
+
+          </div>
 
           <RetroWindow title="YAZI_LİSTESİ" color="bg-[#f472b6]">
             {loading ? (

@@ -1,9 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Eye, Info, PenTool } from 'lucide-react';
 
-const PricingPage = ({ t }) => {
-  const [activePlanType, setActivePlanType] = useState('Reader');
+const PricingPage = ({ initialPlanType = 'Reader', t }) => {
+  const [activePlanType, setActivePlanType] = useState(initialPlanType);
   const currentPlans = activePlanType === 'Reader' ? t.readerPlans : t.writerPlans;
+
+  useEffect(() => {
+    setActivePlanType(initialPlanType);
+  }, [initialPlanType]);
 
   return (
     <div className="bg-[#fdfcf8] min-h-screen py-24 px-8">

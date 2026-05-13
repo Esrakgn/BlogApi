@@ -2,17 +2,27 @@ import { useEffect, useState } from 'react';
 import { Users } from 'lucide-react';
 import RetroWindow from '../components/common/RetroWindow.jsx';
 import { getPosts } from '../services/postService';
+import { getCategories } from '../services/categoryService';
 import { getPostItems, mapPostToArticle } from '../utils/postMapper';
 
 const realityTabs = ['EXPRESSIVE', 'EMPATHETIC', 'ACTIONABLE', 'PERSONALIZED'];
 
-const BlogPage = ({ onPostSelect, t }) => {
+const BlogPage = ({ onPostSelect, searchQuery = '', setBlogSearch, setPage, setPricingPlanType, t }) => {
   const [activeTab, setActiveTab] = useState('EXPRESSIVE');
   const [apiPosts, setApiPosts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pagination, setPagination] = useState({
+    totalCount: 0,
+    totalPages: 1,
+  });
   const [postsLoading, setPostsLoading] = useState(false);
   const [postsError, setPostsError] = useState(null);
+  const [categoriesError, setCategoriesError] = useState(null);
   const activeContent = t.blog.tabs[activeTab];
-  const researchCards = apiPosts.length > 0 ? apiPosts : t.researchPapers;
+  const researchCards = postsError ? t.researchPapers : apiPosts;
 
   useEffect(() => {
     async function loadPosts() {
@@ -20,10 +30,20 @@ const BlogPage = ({ onPostSelect, t }) => {
         setPostsLoading(true);
         setPostsError(null);
 
-        const response = await getPosts({ pageNumber: 1, pageSize: 6 });
+        const response = await getPosts({
+          pageNumber,
+          pageSize: 6,
+          sortBy,
+          categoryId: selectedCategoryId || undefined,
+          search: searchQuery || undefined,
+        });
         const posts = getPostItems(response);
 
         setApiPosts(posts.map((post, index) => mapPostToArticle(post, index)));
+        setPagination({
+          totalCount: response?.totalCount || posts.length,
+          totalPages: response?.totalPages || 1,
+        });
       } catch (error) {
         setPostsError(error.message);
       } finally {
@@ -32,7 +52,40 @@ const BlogPage = ({ onPostSelect, t }) => {
     }
 
     loadPosts();
+  }, [pageNumber, searchQuery, selectedCategoryId, sortBy]);
+
+  useEffect(() => {
+    setPageNumber(1);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        setCategoriesError(null);
+        const response = await getCategories();
+        setCategories(Array.isArray(response) ? response : response?.items || []);
+      } catch (error) {
+        setCategoriesError(error.message);
+      }
+    }
+
+    loadCategories();
   }, []);
+
+  function handleCategoryChange(categoryId) {
+    setSelectedCategoryId(categoryId);
+    setPageNumber(1);
+  }
+
+  function handleSortChange(event) {
+    setSortBy(event.target.value);
+    setPageNumber(1);
+  }
+
+  function clearSearch() {
+    setBlogSearch?.('');
+    setPageNumber(1);
+  }
 
   return (
     <div className="bg-[#fdfcf8] min-h-screen">
@@ -47,9 +100,6 @@ const BlogPage = ({ onPostSelect, t }) => {
           <h5 className="text-[10px] font-mono font-black uppercase tracking-[0.4em] text-[#db2777]">{t.blog.approachKicker}</h5>
           <h3 className="text-5xl font-serif italic font-bold leading-tight">{t.blog.approachTitle}</h3>
           <p className="text-lg text-black/60 leading-relaxed">{t.blog.approachText}</p>
-          <button className="bg-black text-white self-start px-8 py-3 text-[10px] font-mono font-bold uppercase tracking-widest shadow-[4px_4px_0px_0px_rgba(219,39,119,1)] hover:bg-[#db2777] transition-colors">
-            {t.blog.docs}
-          </button>
         </div>
         <div className="bg-[#e2e8f0] relative min-h-[400px] flex items-center justify-center p-8 overflow-hidden">
           <div className="absolute inset-0 opacity-[0.15]" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '10px 10px' }} />
@@ -86,22 +136,22 @@ const BlogPage = ({ onPostSelect, t }) => {
           </div>
 
           <div className="absolute top-0 left-0 w-52 rotate-[-3deg] hidden md:block text-left">
-            <RetroWindow title="CONTEXTUAL" color="bg-[#bfdbfe]">
+            <RetroWindow title="KOD_NOTLARI" color="bg-[#bfdbfe]">
               <p className="text-[10px] font-mono font-bold leading-tight uppercase">{t.blog.areas[0]}</p>
             </RetroWindow>
           </div>
           <div className="absolute top-10 right-0 w-52 rotate-[5deg] hidden md:block text-left">
-            <RetroWindow title="AGENTIC" color="bg-[#a7f3d0]">
+            <RetroWindow title="AI_GÜNDEMİ" color="bg-[#a7f3d0]">
               <p className="text-[10px] font-mono font-bold leading-tight uppercase">{t.blog.areas[1]}</p>
             </RetroWindow>
           </div>
           <div className="absolute bottom-10 left-10 w-52 rotate-[2deg] hidden md:block text-left">
-            <RetroWindow title="AUDIO_VOICE" color="bg-[#fef08a]">
+            <RetroWindow title="WEB_API" color="bg-[#fef08a]">
               <p className="text-[10px] font-mono font-bold leading-tight uppercase">{t.blog.areas[2]}</p>
             </RetroWindow>
           </div>
           <div className="absolute bottom-0 right-10 w-52 rotate-[-4deg] hidden md:block text-left">
-            <RetroWindow title="CONVERSATIONAL" color="bg-[#f472b6]">
+            <RetroWindow title="TOPLULUK" color="bg-[#f472b6]">
               <p className="text-[10px] font-mono font-bold leading-tight uppercase">{t.blog.areas[3]}</p>
             </RetroWindow>
           </div>
@@ -112,6 +162,51 @@ const BlogPage = ({ onPostSelect, t }) => {
         <div className="max-w-7xl mx-auto text-center mb-16">
           <h2 className="text-5xl font-serif italic font-bold">{t.blog.cardsTitle}</h2>
         </div>
+        <div className="mx-auto mb-10 flex max-w-7xl flex-col gap-4 border-2 border-black bg-white p-4 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => handleCategoryChange('')}
+              className={`border-2 border-black px-4 py-2 font-mono text-[9px] font-black uppercase tracking-widest transition-colors ${
+                selectedCategoryId === '' ? 'bg-black text-white' : 'bg-[#fdfcf8] hover:bg-[#fef08a]'
+              }`}
+            >
+              Tümü
+            </button>
+            {categories.map((category) => (
+              <button
+                key={category.id || category.Id}
+                type="button"
+                onClick={() => handleCategoryChange(category.id || category.Id)}
+                className={`border-2 border-black px-4 py-2 font-mono text-[9px] font-black uppercase tracking-widest transition-colors ${
+                  selectedCategoryId === (category.id || category.Id) ? 'bg-black text-white' : 'bg-[#fdfcf8] hover:bg-[#fef08a]'
+                }`}
+              >
+                {category.name || category.Name}
+              </button>
+            ))}
+          </div>
+
+          <label className="flex items-center gap-3 font-mono text-[9px] font-black uppercase tracking-widest text-black/50">
+            Sıralama
+            <select
+              value={sortBy}
+              onChange={handleSortChange}
+              className="border-2 border-black bg-[#fdfcf8] px-3 py-2 text-black outline-none focus:bg-[#fef08a]"
+            >
+              <option value="newest">En Yeni</option>
+              <option value="oldest">En Eski</option>
+            </select>
+          </label>
+        </div>
+        {searchQuery && (
+          <div className="mx-auto mb-8 flex max-w-7xl flex-col gap-3 border-2 border-black bg-[#fef08a] px-5 py-4 font-mono text-[10px] font-black uppercase tracking-widest shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:flex-row sm:items-center sm:justify-between">
+            <span>Arama sonucu: {searchQuery}</span>
+            <button type="button" onClick={clearSearch} className="self-start border-2 border-black bg-white px-3 py-2 hover:bg-black hover:text-white sm:self-auto">
+              Temizle
+            </button>
+          </div>
+        )}
         {postsLoading && (
           <div className="mb-8 text-center font-mono text-[10px] font-black uppercase tracking-[0.3em] text-black/40">
             Yazılar yükleniyor...
@@ -120,6 +215,11 @@ const BlogPage = ({ onPostSelect, t }) => {
         {postsError && (
           <div className="mb-8 text-center font-mono text-[10px] font-black uppercase tracking-[0.3em] text-[#db2777]">
             Backend yazıları alınamadı. Varsayılan kartlar gösteriliyor.
+          </div>
+        )}
+        {categoriesError && (
+          <div className="mb-8 text-center font-mono text-[10px] font-black uppercase tracking-[0.3em] text-[#db2777]">
+            Kategoriler alınamadı.
           </div>
         )}
         <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-8">
@@ -145,8 +245,43 @@ const BlogPage = ({ onPostSelect, t }) => {
             </div>
           ))}
         </div>
+        {!postsLoading && apiPosts.length === 0 && !postsError && (
+          <div className="mx-auto mt-10 max-w-7xl border-2 border-black bg-white p-6 text-center font-mono text-[10px] font-black uppercase tracking-[0.3em] text-black/40">
+            Bu filtreye uygun yazı bulunamadı.
+          </div>
+        )}
+        {!postsError && pagination.totalPages > 1 && (
+          <div className="mx-auto mt-12 flex max-w-7xl items-center justify-center gap-4">
+            <button
+              type="button"
+              onClick={() => setPageNumber((current) => Math.max(1, current - 1))}
+              disabled={pageNumber <= 1 || postsLoading}
+              className="border-2 border-black bg-white px-5 py-3 font-mono text-[9px] font-black uppercase tracking-widest shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Önceki
+            </button>
+            <span className="border-2 border-black bg-[#fef08a] px-4 py-3 font-mono text-[9px] font-black uppercase tracking-widest">
+              {pageNumber} / {pagination.totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPageNumber((current) => Math.min(pagination.totalPages, current + 1))}
+              disabled={pageNumber >= pagination.totalPages || postsLoading}
+              className="border-2 border-black bg-white px-5 py-3 font-mono text-[9px] font-black uppercase tracking-widest shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Sonraki
+            </button>
+          </div>
+        )}
         <div className="text-center mt-20">
-          <button className="bg-black text-white px-12 py-4 text-[10px] font-mono font-bold uppercase tracking-widest border-2 border-black shadow-[4px_4px_0px_0px_rgba(219,39,119,1)] hover:translate-x-1 hover:translate-y-1 transition-all">
+          <button
+            type="button"
+            onClick={() => {
+              setBlogSearch?.('');
+              setPage?.('read');
+            }}
+            className="bg-black text-white px-12 py-4 text-[10px] font-mono font-bold uppercase tracking-widest border-2 border-black shadow-[4px_4px_0px_0px_rgba(219,39,119,1)] hover:translate-x-1 hover:translate-y-1 transition-all"
+          >
             {t.blog.seeAll}
           </button>
         </div>
@@ -180,7 +315,9 @@ const BlogPage = ({ onPostSelect, t }) => {
                 </button>
               </div>
               <div className="bg-black p-2 border-2 border-black shadow-[8px_8px_0px_0px_rgba(219,39,119,1)]">
-                <img src="/images/ui/tavus.png" alt={activeContent.title} className="w-full grayscale contrast-125 opacity-90" />
+                <div className="aspect-[16/10] overflow-hidden bg-white">
+                  <img src={activeContent.image || '/images/ui/tavus.png'} alt={activeContent.title} className="h-full w-full object-cover" />
+                </div>
               </div>
             </div>
           </div>
@@ -192,7 +329,13 @@ const BlogPage = ({ onPostSelect, t }) => {
           <div className="space-y-10">
             <h3 className="text-6xl font-serif italic font-black uppercase leading-[0.95] text-black">{t.blog.joinTitle}</h3>
             <p className="text-xl text-black/60 font-medium leading-relaxed">{t.blog.joinText}</p>
-            <button className="bg-[#db2777] text-white px-12 py-5 text-[10px] font-mono font-bold uppercase tracking-widest border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all">
+            <button
+              onClick={() => {
+                setPricingPlanType?.('Writer');
+                setPage?.('pricing');
+              }}
+              className="bg-[#db2777] text-white px-12 py-5 text-[10px] font-mono font-bold uppercase tracking-widest border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+            >
               {t.blog.careers}
             </button>
           </div>

@@ -1,5 +1,5 @@
 const NewsletterSection = ({ t }) => (
-  <section className="bg-[#fdfcf8] py-24 px-8 border-y-2 border-black overflow-hidden relative">
+  <section id="newsletter" className="bg-[#fdfcf8] py-24 px-8 border-y-2 border-black overflow-hidden relative">
     <div
       className="absolute inset-0 opacity-[0.1]"
       style={{
